@@ -485,24 +485,25 @@ export function ClientDetailContent({ clientId }: ClientDetailContentProps) {
             </div>
           )}
 
-          {/* Solicitação de Produção de Conteúdo */}
+          {/* Estratégia de Produção de Conteúdo Paga */}
           {client.content_request && (
             <div className="mb-6">
               <h3 className="text-sm font-medium text-zinc-400 mb-2 flex items-center gap-2">
                 <Icon name="filetext" size="xs" />
-                Solicitação de Produção de Conteúdo
+                Estratégia de Produção de Conteúdo Paga
               </h3>
               <p className="text-sm text-zinc-300 leading-relaxed">{client.content_request}</p>
             </div>
           )}
 
-          {client.notes && (
+          {/* Estratégia de Produção de Conteúdo Orgânica */}
+          {client.organic_content_strategy && (
             <div className="mb-6">
               <h3 className="text-sm font-medium text-zinc-400 mb-2 flex items-center gap-2">
                 <Icon name="filetext" size="xs" />
-                Observações
+                Estratégia de Produção de Conteúdo Orgânica
               </h3>
-              <p className="text-sm text-zinc-300 leading-relaxed">{client.notes}</p>
+              <p className="text-sm text-zinc-300 leading-relaxed">{client.organic_content_strategy}</p>
             </div>
           )}
 

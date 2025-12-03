@@ -306,16 +306,11 @@ export function ClientDetailModal({
           <div className="px-6 pb-4">
             <div className="flex items-end gap-4 -mt-10">
               {/* Avatar */}
-              <div className="relative">
-                <AvatarUpload
-                  client={localClient}
-                  onUpdate={handleAvatarUpdate}
-                  size="lg"
-                />
-                <div className="absolute -bottom-1 -right-1">
-                  <StatusBadge status={localClient.status} size="sm" />
-                </div>
-              </div>
+              <AvatarUpload
+                client={localClient}
+                onUpdate={handleAvatarUpdate}
+                size="lg"
+              />
 
               {/* Info principal */}
               <div className="flex-1 pb-2">

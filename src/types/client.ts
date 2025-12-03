@@ -85,6 +85,7 @@ export interface Client {
   fixed_meeting_time: string | null;
   image_authorization: boolean | null;
   content_request: string | null;
+  organic_content_strategy: string | null;
 
   // Observações
   notes: string | null;
@@ -162,6 +163,7 @@ export interface CreateClientDTO {
   fixed_meeting_time?: string;
   image_authorization?: boolean;
   content_request?: string;
+  organic_content_strategy?: string;
 
   // Observações (opcional)
   notes?: string;

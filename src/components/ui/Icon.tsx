@@ -10,6 +10,8 @@
 import {
   AlertCircle,
   AlertTriangle,
+  ArrowLeft,
+  ArrowRight,
   Ban,
   BarChart,
   BarChart2,
@@ -17,6 +19,7 @@ import {
   Bot,
   Brain,
   Briefcase,
+  Building2,
   Calendar,
   Camera,
   Car,
@@ -72,6 +75,7 @@ import {
   Search,
   Settings,
   Share2,
+  ShieldCheck,
   ShoppingCart,
   Smartphone,
   Sparkles,
@@ -84,6 +88,7 @@ import {
   Trophy,
   User,
   Users,
+  Video,
   Wallet,
   Wrench,
   X,
@@ -107,6 +112,8 @@ const iconMap: Record<string, LucideIcon> = {
   x: X,
   'chevron-down': ChevronDown,
   'chevron-up': ChevronUp,
+  'arrow-left': ArrowLeft,
+  'arrow-right': ArrowRight,
   eye: Eye,
   'eye-off': EyeOff,
   'external-link': ExternalLink,
@@ -116,6 +123,11 @@ const iconMap: Record<string, LucideIcon> = {
   trash: Trash2,
   'trash-2': Trash2,
   star: Star,
+
+  // Business & Buildings
+  'building-2': Building2,
+  building: Building2,
+  company: Building2,
 
   // Users & People
   user: User,
@@ -223,7 +235,7 @@ const iconMap: Record<string, LucideIcon> = {
   image: Image,
   photo: Camera,
   camera: Camera,
-  video: Clapperboard,
+  video: Video,
   clapperboard: Clapperboard,
   reels: Film,
   film: Film,
@@ -251,6 +263,8 @@ const iconMap: Record<string, LucideIcon> = {
 
   // Security & Access
   key: Key,
+  'shield-check': ShieldCheck,
+  shield: ShieldCheck,
 
   // Communication & Social
   'share-2': Share2,
