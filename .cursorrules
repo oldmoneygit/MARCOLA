@@ -1,0 +1,274 @@
+# .cursorrules - Regras para Cursor IDE / Claude Code
+
+## IDENTIDADE DO PROJETO
+
+Você está trabalhando no **TrafficHub**, um sistema de gestão para agências de tráfego pago.
+
+**ANTES DE QUALQUER AÇÃO, LEIA:**
+1. `CLAUDE.md` - Regras obrigatórias
+2. `PROJECT.md` - Visão geral
+3. `docs/` - Documentação técnica
+
+---
+
+## REGRAS CRÍTICAS (NUNCA VIOLAR)
+
+### 1. VALIDAÇÃO OBRIGATÓRIA
+
+Após CADA modificação, execute:
+
+```bash
+npm run type-check && npm run lint && npm run build
+```
+
+**SE FALHAR**: Corrija ANTES de continuar. NUNCA entregue código com erros.
+
+### 2. ESTRUTURA DE RESPOSTA
+
+Ao completar qualquer tarefa, SEMPRE responda assim:
+
+```
+## ✅ [Nome da Tarefa]
+
+### Arquivos:
+- `path/file.tsx` - O que foi feito
+
+### Validação:
+- ✅ TypeScript: OK
+- ✅ ESLint: OK  
+- ✅ Build: OK
+
+### Próximo:
+- Sugestão do que fazer a seguir
+```
+
+### 3. CÓDIGO COMENTADO
+
+Todo arquivo DEVE ter header:
+
+```typescript
+/**
+ * @file NomeArquivo.tsx
+ * @description O que este arquivo faz
+ * @module components/categoria
+ */
+```
+
+### 4. PROIBIÇÕES ABSOLUTAS
+
+- ❌ `any` - Use tipos específicos
+- ❌ `console.log` - Use `console.error` para erros
+- ❌ Código que não compila
+- ❌ Ignorar erros de TypeScript
+- ❌ Inline styles (use Tailwind)
+- ❌ Entregar sem validar
+
+---
+
+## STACK TECNOLÓGICA
+
+```
+Frontend: Next.js 14 (App Router) + React 18 + TypeScript 5
+Styling: Tailwind CSS + DaisyUI
+Database: Supabase (PostgreSQL)
+Auth: Supabase Auth
+State: Zustand
+Forms: React Hook Form + Zod
+Charts: Recharts
+Deploy: Vercel
+```
+
+---
+
+## PADRÕES DE CÓDIGO
+
+### Imports (ordem obrigatória)
+
+```typescript
+// 1. React/Next
+import React, { useState } from 'react';
+import { useRouter } from 'next/navigation';
+
+// 2. Libs externas
+import { format } from 'date-fns';
+
+// 3. Componentes internos
+import { GlassCard } from '@/components/ui';
+
+// 4. Hooks
+import { useClients } from '@/hooks';
+
+// 5. Types
+import type { Client } from '@/types';
+
+// 6. Utils
+import { formatCurrency } from '@/lib/utils';
+```
+
+### Nomenclatura
+
+| Tipo | Padrão | Exemplo |
+|------|--------|---------|
+| Componente | PascalCase | `ClientCard.tsx` |
+| Hook | camelCase + use | `useClients.ts` |
+| Util | camelCase | `formatCurrency.ts` |
+| Type | PascalCase | `Client` |
+| Constante | UPPER_SNAKE | `MAX_CLIENTS` |
+
+### Componente Padrão
+
+```typescript
+/**
+ * @file ComponentName.tsx
+ * @description Descrição
+ * @module components/categoria
+ */
+
+'use client';
+
+import React from 'react';
+
+interface ComponentNameProps {
+  prop1: string;
+  prop2?: number;
+}
+
+export function ComponentName({ prop1, prop2 = 0 }: ComponentNameProps) {
+  return (
+    <div>
+      {/* JSX */}
+    </div>
+  );
+}
+```
+
+---
+
+## DESIGN SYSTEM
+
+### Cores Principais
+
+```css
+--bg-primary: #0a0a0f
+--bg-glass: rgba(255, 255, 255, 0.03)
+--border-glass: rgba(255, 255, 255, 0.08)
+--accent: #8b5cf6
+--success: #10b981
+--warning: #f59e0b
+--danger: #ef4444
+```
+
+### Glassmorphism (SEMPRE usar)
+
+```html
+<div class="
+  backdrop-blur-xl 
+  bg-white/[0.03] 
+  border border-white/[0.08] 
+  rounded-2xl
+  hover:bg-white/[0.06] 
+  hover:border-white/[0.15]
+  transition-all duration-300
+">
+```
+
+### DaisyUI Theme
+
+```html
+<html data-theme="dark">
+```
+
+---
+
+## ESTRUTURA DE PASTAS
+
+```
+src/
+├── app/                 # Next.js App Router
+│   ├── (auth)/         # Rotas de auth
+│   ├── (dashboard)/    # Rotas do dashboard
+│   ├── api/            # API Routes
+│   └── layout.tsx
+├── components/
+│   ├── ui/             # Componentes base
+│   ├── clients/        # Componentes de clientes
+│   ├── reports/        # Componentes de relatórios
+│   ├── analysis/       # Componentes de análise
+│   ├── financial/      # Componentes financeiros
+│   └── layout/         # Sidebar, Header
+├── hooks/              # Custom hooks
+├── lib/                # Utils, Supabase client
+├── stores/             # Zustand stores
+├── types/              # TypeScript types
+└── styles/             # CSS adicional
+```
+
+---
+
+## TRATAMENTO DE ERROS
+
+SEMPRE use try-catch:
+
+```typescript
+async function fetchData() {
+  try {
+    const { data, error } = await supabase.from('table').select();
+    if (error) throw error;
+    return data;
+  } catch (error) {
+    console.error('[fetchData] Error:', error);
+    throw error;
+  }
+}
+```
+
+---
+
+## WORKFLOW
+
+### Ao iniciar nova feature:
+
+1. Leia a documentação relevante
+2. Crie types primeiro
+3. Crie componentes base
+4. Implemente lógica
+5. Valide (type-check, lint, build)
+6. Documente se necessário
+
+### Checklist pré-entrega:
+
+- [ ] `npm run type-check` ✅
+- [ ] `npm run lint` ✅
+- [ ] `npm run build` ✅
+- [ ] Código comentado
+- [ ] Sem `any` types
+- [ ] Sem `console.log`
+- [ ] Tratamento de erros
+- [ ] Loading states
+- [ ] Empty states
+
+---
+
+## COMMITS
+
+Formato: `type(scope): description`
+
+```
+feat(clients): add client form
+fix(reports): correct CPA calculation
+docs(readme): update setup
+```
+
+---
+
+## LEMBRE-SE
+
+1. **Qualidade > Velocidade** - Código funcionando perfeitamente
+2. **Valide SEMPRE** - Nunca entregue sem testar
+3. **Documente** - Código comentado e organizado
+4. **Consistência** - Siga os padrões estabelecidos
+5. **Dark mode + Glassmorphism** - SEMPRE
+
+---
+
+*Estas regras são OBRIGATÓRIAS. Siga-as em TODAS as interações.*
