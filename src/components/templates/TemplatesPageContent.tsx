@@ -19,14 +19,14 @@ import { TASK_PRIORITY_CONFIG, TASK_RECURRENCE_CONFIG } from '@/types';
 
 /** Segmentos comuns para templates */
 const COMMON_SEGMENTS = [
-  { value: 'restaurante', label: 'Restaurante', icon: '🍽️' },
-  { value: 'academia', label: 'Academia', icon: '💪' },
-  { value: 'ecommerce', label: 'E-commerce', icon: '🛒' },
-  { value: 'clinica', label: 'Clínica', icon: '🏥' },
-  { value: 'imobiliaria', label: 'Imobiliária', icon: '🏠' },
-  { value: 'educacao', label: 'Educação', icon: '📚' },
-  { value: 'servicos', label: 'Serviços', icon: '🔧' },
-  { value: 'varejo', label: 'Varejo', icon: '🏪' },
+  { value: 'restaurante', label: 'Restaurante', icon: 'delivery' },
+  { value: 'academia', label: 'Academia', icon: 'fitness' },
+  { value: 'ecommerce', label: 'E-commerce', icon: 'ecommerce' },
+  { value: 'clinica', label: 'Clínica', icon: 'health' },
+  { value: 'imobiliaria', label: 'Imobiliária', icon: 'construction' },
+  { value: 'educacao', label: 'Educação', icon: 'education' },
+  { value: 'servicos', label: 'Serviços', icon: 'services' },
+  { value: 'varejo', label: 'Varejo', icon: 'other' },
 ];
 
 /**

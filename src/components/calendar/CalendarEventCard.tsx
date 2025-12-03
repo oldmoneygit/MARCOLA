@@ -13,12 +13,14 @@ import { useCallback, useState } from 'react';
 import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
+import { Icon } from '@/components/ui';
+
 import { cn } from '@/lib/utils';
 
 import { ContentTypeBadge } from './ContentTypeBadge';
 import { ContentStatusBadge } from './ContentStatusBadge';
 
-import { PLATFORM_CONFIG, type CalendarEvent, type ContentStatus } from '@/types';
+import { PLATFORM_CONFIG, CONTENT_TYPE_CONFIG as GLOBAL_CONTENT_CONFIG, type CalendarEvent, type ContentStatus } from '@/types';
 
 interface CalendarEventCardProps {
   /** Dados do evento */
@@ -90,13 +92,13 @@ function CalendarEventCard({
           'px-2 py-1 rounded text-xs cursor-pointer',
           'hover:opacity-80 transition-opacity',
           'flex items-center gap-1 truncate',
-          event.color ? '' : CONTENT_TYPE_CONFIG[event.type].className,
+          event.color ? '' : GLOBAL_CONTENT_CONFIG[event.type].className,
           className
         )}
         style={event.color ? { backgroundColor: `${event.color}20`, color: event.color } : undefined}
         title={event.title}
       >
-        <span>{CONTENT_TYPE_CONFIG[event.type].icon}</span>
+        <Icon name={GLOBAL_CONTENT_CONFIG[event.type].icon} size="xs" />
         <span className="truncate">{event.title}</span>
       </div>
     );
@@ -159,10 +161,9 @@ function CalendarEventCard({
               <span
                 key={platform}
                 title={config.label}
-                className="text-sm"
                 style={{ color: config.color }}
               >
-                {config.icon}
+                <Icon name={config.icon} size="sm" />
               </span>
             );
           })}
@@ -190,18 +191,6 @@ function CalendarEventCard({
     </div>
   );
 }
-
-// Helper para usar no compact mode
-const CONTENT_TYPE_CONFIG = {
-  post: { icon: '📸', className: 'bg-blue-500/20 text-blue-400' },
-  video: { icon: '🎬', className: 'bg-purple-500/20 text-purple-400' },
-  reels: { icon: '🎞️', className: 'bg-pink-500/20 text-pink-400' },
-  stories: { icon: '📱', className: 'bg-orange-500/20 text-orange-400' },
-  promo: { icon: '🏷️', className: 'bg-green-500/20 text-green-400' },
-  campaign: { icon: '🚀', className: 'bg-violet-500/20 text-violet-400' },
-  event: { icon: '🎉', className: 'bg-yellow-500/20 text-yellow-400' },
-  other: { icon: '📌', className: 'bg-zinc-500/20 text-zinc-400' },
-};
 
 export { CalendarEventCard };
 export type { CalendarEventCardProps };

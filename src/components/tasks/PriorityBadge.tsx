@@ -7,6 +7,8 @@
  * <PriorityBadge priority="urgent" />
  */
 
+import { Circle } from 'lucide-react';
+
 import { cn } from '@/lib/utils';
 
 import { TASK_PRIORITY_CONFIG, type TaskPriority } from '@/types';
@@ -49,7 +51,13 @@ function PriorityBadge({
         className
       )}
     >
-      {showIcon && <span aria-hidden="true">{config.icon}</span>}
+      {showIcon && (
+        <Circle
+          className={cn('w-2.5 h-2.5', config.iconColor)}
+          fill="currentColor"
+          aria-hidden="true"
+        />
+      )}
       {config.label}
     </span>
   );

@@ -10,6 +10,7 @@ import Link from 'next/link';
 import { useCallback, useEffect, useState } from 'react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { CheckCircle2 } from 'lucide-react';
 
 import { GlassCard } from '@/components/ui';
 import { PriorityBadge } from '@/components/tasks';
@@ -105,7 +106,7 @@ export function TodayTasksWidget() {
 
       {allTasks.length === 0 ? (
         <div className="text-center py-8 text-zinc-400">
-          <span className="text-3xl">✅</span>
+          <CheckCircle2 className="w-10 h-10 mx-auto text-emerald-400" />
           <p className="mt-2">Nenhuma tarefa para hoje!</p>
           <p className="text-sm text-zinc-500">Aproveite o dia</p>
         </div>

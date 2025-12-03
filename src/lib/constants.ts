@@ -44,17 +44,17 @@ export const NAV_ITEMS = [
  * Segmentos de clientes disponíveis
  */
 export const SEGMENTS = [
-  { value: 'fitness', label: 'Academia / Fitness', icon: '💪' },
-  { value: 'delivery', label: 'Delivery / Restaurante', icon: '🍕' },
-  { value: 'ecommerce', label: 'E-commerce', icon: '🛒' },
-  { value: 'services', label: 'Serviços', icon: '🔧' },
-  { value: 'education', label: 'Educação', icon: '📚' },
-  { value: 'health', label: 'Saúde', icon: '🏥' },
-  { value: 'construction', label: 'Construção Civil', icon: '🏗️' },
-  { value: 'events', label: 'Eventos', icon: '🎉' },
-  { value: 'beauty', label: 'Beleza / Estética', icon: '💅' },
-  { value: 'automotive', label: 'Automotivo', icon: '🚗' },
-  { value: 'other', label: 'Outro', icon: '📦' },
+  { value: 'fitness', label: 'Academia / Fitness', icon: 'fitness' },
+  { value: 'delivery', label: 'Delivery / Restaurante', icon: 'delivery' },
+  { value: 'ecommerce', label: 'E-commerce', icon: 'ecommerce' },
+  { value: 'services', label: 'Serviços', icon: 'services' },
+  { value: 'education', label: 'Educação', icon: 'education' },
+  { value: 'health', label: 'Saúde', icon: 'health' },
+  { value: 'construction', label: 'Construção Civil', icon: 'construction' },
+  { value: 'events', label: 'Eventos', icon: 'events' },
+  { value: 'beauty', label: 'Beleza / Estética', icon: 'beauty' },
+  { value: 'automotive', label: 'Automotivo', icon: 'automotive' },
+  { value: 'other', label: 'Outro', icon: 'other' },
 ] as const;
 
 /**
@@ -103,21 +103,21 @@ export const PAYMENT_STATUS = {
     color: 'warning',
     bgClass: 'bg-amber-500/20',
     textClass: 'text-amber-400',
-    icon: '⏳',
+    icon: 'clock',
   },
   paid: {
     label: 'Pago',
     color: 'success',
     bgClass: 'bg-emerald-500/20',
     textClass: 'text-emerald-400',
-    icon: '✅',
+    icon: 'check-circle',
   },
   overdue: {
     label: 'Atrasado',
     color: 'error',
     bgClass: 'bg-red-500/20',
     textClass: 'text-red-400',
-    icon: '🚨',
+    icon: 'alert',
   },
 } as const;
 
@@ -130,28 +130,28 @@ export const AD_STATUS = {
     color: 'success',
     bgClass: 'bg-emerald-500/20',
     textClass: 'text-emerald-400',
-    icon: '🏆',
+    icon: 'trophy',
   },
   active: {
     label: 'Ativo',
     color: 'info',
     bgClass: 'bg-blue-500/20',
     textClass: 'text-blue-400',
-    icon: '✓',
+    icon: 'check',
   },
   fatigue: {
     label: 'Fadiga',
     color: 'warning',
     bgClass: 'bg-amber-500/20',
     textClass: 'text-amber-400',
-    icon: '⚠️',
+    icon: 'alert-triangle',
   },
   pause: {
     label: 'Pausar',
     color: 'error',
     bgClass: 'bg-red-500/20',
     textClass: 'text-red-400',
-    icon: '❌',
+    icon: 'x-circle',
   },
 } as const;
 
@@ -165,7 +165,8 @@ export const SUGGESTION_SEVERITY = {
     bgClass: 'bg-red-500/20',
     textClass: 'text-red-400',
     borderClass: 'border-red-500',
-    icon: '🔴',
+    icon: 'circle-red',
+    iconColor: 'text-red-500',
   },
   warning: {
     label: 'ATENÇÃO',
@@ -173,7 +174,8 @@ export const SUGGESTION_SEVERITY = {
     bgClass: 'bg-amber-500/20',
     textClass: 'text-amber-400',
     borderClass: 'border-amber-500',
-    icon: '🟡',
+    icon: 'circle-yellow',
+    iconColor: 'text-amber-500',
   },
   info: {
     label: 'SUGESTÃO',
@@ -181,7 +183,8 @@ export const SUGGESTION_SEVERITY = {
     bgClass: 'bg-blue-500/20',
     textClass: 'text-blue-400',
     borderClass: 'border-blue-500',
-    icon: '🔵',
+    icon: 'circle-blue',
+    iconColor: 'text-blue-500',
   },
 } as const;
 

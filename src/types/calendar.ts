@@ -139,42 +139,42 @@ export interface CalendarMonth {
 export const CONTENT_TYPE_CONFIG: Record<ContentType, { label: string; icon: string; className: string }> = {
   post: {
     label: 'Post',
-    icon: '📸',
+    icon: 'image',
     className: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
   },
   video: {
     label: 'Vídeo',
-    icon: '🎬',
+    icon: 'video',
     className: 'bg-purple-500/20 text-purple-400 border-purple-500/30',
   },
   reels: {
     label: 'Reels',
-    icon: '🎞️',
+    icon: 'reels',
     className: 'bg-pink-500/20 text-pink-400 border-pink-500/30',
   },
   stories: {
     label: 'Stories',
-    icon: '📱',
+    icon: 'stories',
     className: 'bg-orange-500/20 text-orange-400 border-orange-500/30',
   },
   promo: {
     label: 'Promoção',
-    icon: '🏷️',
+    icon: 'promo',
     className: 'bg-green-500/20 text-green-400 border-green-500/30',
   },
   campaign: {
     label: 'Campanha',
-    icon: '🚀',
+    icon: 'campaign',
     className: 'bg-violet-500/20 text-violet-400 border-violet-500/30',
   },
   event: {
     label: 'Evento',
-    icon: '🎉',
+    icon: 'events',
     className: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30',
   },
   other: {
     label: 'Outro',
-    icon: '📌',
+    icon: 'pin',
     className: 'bg-zinc-500/20 text-zinc-400 border-zinc-500/30',
   },
 };
@@ -211,32 +211,32 @@ export const CONTENT_STATUS_CONFIG: Record<ContentStatus, { label: string; class
 export const PLATFORM_CONFIG: Record<Platform, { label: string; icon: string; color: string }> = {
   instagram: {
     label: 'Instagram',
-    icon: '📷',
+    icon: 'instagram',
     color: '#E4405F',
   },
   facebook: {
     label: 'Facebook',
-    icon: '📘',
+    icon: 'facebook',
     color: '#1877F2',
   },
   tiktok: {
     label: 'TikTok',
-    icon: '🎵',
+    icon: 'tiktok',
     color: '#000000',
   },
   google: {
     label: 'Google',
-    icon: '🔍',
+    icon: 'google',
     color: '#4285F4',
   },
   youtube: {
     label: 'YouTube',
-    icon: '▶️',
+    icon: 'youtube',
     color: '#FF0000',
   },
   linkedin: {
     label: 'LinkedIn',
-    icon: '💼',
+    icon: 'linkedin',
     color: '#0A66C2',
   },
 };

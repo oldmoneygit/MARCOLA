@@ -7,6 +7,8 @@
  * <ContentTypeBadge type="post" />
  */
 
+import { Icon } from '@/components/ui';
+
 import { cn } from '@/lib/utils';
 
 import { CONTENT_TYPE_CONFIG, type ContentType } from '@/types';
@@ -48,7 +50,7 @@ function ContentTypeBadge({
         className
       )}
     >
-      {showIcon && <span aria-hidden="true">{config.icon}</span>}
+      {showIcon && <Icon name={config.icon} size="xs" aria-hidden="true" />}
       {config.label}
     </span>
   );

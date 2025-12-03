@@ -160,25 +160,29 @@ export interface ApplyTemplatesDTO {
 // =============================================================================
 
 /** Configuração de prioridades */
-export const TASK_PRIORITY_CONFIG: Record<TaskPriority, { label: string; icon: string; className: string }> = {
+export const TASK_PRIORITY_CONFIG: Record<TaskPriority, { label: string; icon: string; iconColor: string; className: string }> = {
   urgent: {
     label: 'Urgente',
-    icon: '🔴',
+    icon: 'circle-red',
+    iconColor: 'text-red-500',
     className: 'bg-red-500/20 text-red-400 border-red-500/30',
   },
   high: {
     label: 'Alta',
-    icon: '🟠',
+    icon: 'circle-orange',
+    iconColor: 'text-orange-500',
     className: 'bg-orange-500/20 text-orange-400 border-orange-500/30',
   },
   medium: {
     label: 'Média',
-    icon: '🟡',
+    icon: 'circle-yellow',
+    iconColor: 'text-yellow-500',
     className: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30',
   },
   low: {
     label: 'Baixa',
-    icon: '🟢',
+    icon: 'circle-green',
+    iconColor: 'text-green-500',
     className: 'bg-green-500/20 text-green-400 border-green-500/30',
   },
 };
