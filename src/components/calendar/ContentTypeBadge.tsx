@@ -1,6 +1,6 @@
 /**
  * @file ContentTypeBadge.tsx
- * @description Componente de badge para tipo de conteúdo
+ * @description Componente de badge para tipo de conteúdo com visual glassmorphism
  * @module components/calendar
  *
  * @example
@@ -25,13 +25,23 @@ interface ContentTypeBadgeProps {
 }
 
 const sizeStyles = {
-  sm: 'px-2 py-0.5 text-xs gap-1',
-  md: 'px-2.5 py-1 text-xs gap-1.5',
-  lg: 'px-3 py-1.5 text-sm gap-2',
+  sm: {
+    badge: 'px-2.5 py-1 text-[11px] gap-1.5',
+    icon: 'xs' as const,
+  },
+  md: {
+    badge: 'px-3 py-1.5 text-xs gap-2',
+    icon: 'sm' as const,
+  },
+  lg: {
+    badge: 'px-4 py-2 text-sm gap-2.5',
+    icon: 'md' as const,
+  },
 };
 
 /**
  * Badge para exibição de tipo de conteúdo
+ * Design glassmorphism com ícones
  */
 function ContentTypeBadge({
   type,
@@ -40,17 +50,36 @@ function ContentTypeBadge({
   className,
 }: ContentTypeBadgeProps) {
   const config = CONTENT_TYPE_CONFIG[type];
+  const sizeStyle = sizeStyles[size];
 
   return (
     <span
       className={cn(
-        'inline-flex items-center font-medium rounded-full border',
-        config.className,
-        sizeStyles[size],
+        // Base styles
+        'inline-flex items-center font-semibold rounded-lg',
+        // Glass effect
+        'backdrop-blur-sm border',
+        // Shadow for depth
+        'shadow-sm',
+        // Transition
+        'transition-all duration-200',
+        // Config colors
+        config.bgColor,
+        config.textColor,
+        config.borderColor,
+        // Size
+        sizeStyle.badge,
         className
       )}
     >
-      {showIcon && <Icon name={config.icon} size="xs" aria-hidden="true" />}
+      {showIcon && (
+        <Icon
+          name={config.icon}
+          size={sizeStyle.icon}
+          className={config.iconColor}
+          aria-hidden="true"
+        />
+      )}
       {config.label}
     </span>
   );

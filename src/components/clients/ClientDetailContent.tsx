@@ -10,14 +10,22 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useState } from 'react';
 
-import { Button, GlassCard, StatusBadge, Modal } from '@/components/ui';
-import { CLIENT_STATUS, MEETING_FREQUENCIES, ROUTES, SEGMENTS } from '@/lib/constants';
+import { Button, GlassCard, StatusBadge, Modal, Icon } from '@/components/ui';
+import { CLIENT_STATUS, MEETING_FREQUENCIES, ROUTES, SEGMENTS, CAPTATION_FREQUENCIES, VIDEO_QUANTITY_RANGES, WEEK_DAYS } from '@/lib/constants';
 import { cn, formatCurrency, formatPhone } from '@/lib/utils';
 
 import { TaskList, TaskForm, NoteCard, NoteForm } from '@/components/tasks';
 import { CalendarGrid, CalendarEventForm } from '@/components/calendar';
+import { BriefingDisplay } from '@/components/clients/BriefingDisplay';
+import {
+  IntelligenceCard,
+  ExecutiveSummaryCard,
+  ContentSuggestionsGrid,
+  SeasonalOffersCarousel,
+  IntelligenceLoadingSkeleton,
+} from '@/components/intelligence';
 
-import { useTasks, useClientNotes, useCalendar } from '@/hooks';
+import { useTasks, useClientNotes, useCalendar, useClientIntelligence } from '@/hooks';
 
 import type { Client, Report, Payment, Task, ClientNote, CalendarEvent, CreateTaskDTO, CreateCalendarEventDTO, TaskStatus } from '@/types';
 
@@ -25,13 +33,15 @@ interface ClientDetailContentProps {
   clientId: string;
 }
 
-type Tab = 'overview' | 'tasks' | 'calendar' | 'notes';
+type Tab = 'overview' | 'briefing' | 'intelligence' | 'tasks' | 'calendar' | 'notes';
 
 const TABS: { id: Tab; label: string; icon: string }[] = [
-  { id: 'overview', label: 'Visão Geral', icon: '📊' },
-  { id: 'tasks', label: 'Tarefas', icon: '✅' },
-  { id: 'calendar', label: 'Cronograma', icon: '📅' },
-  { id: 'notes', label: 'Notas', icon: '📝' },
+  { id: 'overview', label: 'Visão Geral', icon: 'dashboard' },
+  { id: 'briefing', label: 'Briefing', icon: 'filetext' },
+  { id: 'intelligence', label: 'Inteligência', icon: 'bot' },
+  { id: 'tasks', label: 'Tarefas', icon: 'checksquare' },
+  { id: 'calendar', label: 'Cronograma', icon: 'calendar' },
+  { id: 'notes', label: 'Notas', icon: 'filetext' },
 ];
 
 /**
@@ -80,6 +90,15 @@ export function ClientDetailContent({ clientId }: ClientDetailContentProps) {
     updateEvent,
     deleteEvent: _deleteEvent,
   } = useCalendar({ clientId, autoFetch: activeTab === 'calendar' });
+
+  const {
+    intelligence,
+    loading: intelligenceLoading,
+    generating: intelligenceGenerating,
+    isStale: intelligenceIsStale,
+    generate: generateIntelligence,
+    regenerate: regenerateIntelligence,
+  } = useClientIntelligence({ clientId, autoFetch: activeTab === 'intelligence' || activeTab === 'overview' });
 
   // Carregar dados do cliente
   useEffect(() => {
@@ -274,7 +293,7 @@ export function ClientDetailContent({ clientId }: ClientDetailContentProps) {
                 : 'text-zinc-400 hover:text-white hover:bg-white/[0.05]'
             )}
           >
-            <span>{tab.icon}</span>
+            <Icon name={tab.icon} size="sm" />
             <span>{tab.label}</span>
           </button>
         ))}
@@ -283,59 +302,121 @@ export function ClientDetailContent({ clientId }: ClientDetailContentProps) {
       {/* Conteúdo da Aba Ativa */}
       {activeTab === 'overview' && (
         <>
+          {/* Briefing Completado - Destaque no topo */}
+          {client.briefing_data && client.briefing_data.answers && client.briefing_data.answers.length > 0 && (
+            <GlassCard className="border-violet-500/40 bg-violet-500/5">
+              <div className="flex items-start justify-between mb-4">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 rounded-lg bg-violet-500/20">
+                    <Icon name="filetext" size="md" className="text-violet-400" />
+                  </div>
+                  <div>
+                    <h3 className="text-base font-semibold text-white">Briefing Completado</h3>
+                    <p className="text-xs text-zinc-400">
+                      {client.briefing_data.template_name}
+                      {client.briefing_data.answered_at && (
+                        <> • Preenchido em {new Date(client.briefing_data.answered_at).toLocaleDateString('pt-BR')}</>
+                      )}
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setActiveTab('briefing')}
+                  className="text-xs text-violet-400 hover:text-violet-300 transition-colors"
+                >
+                  Ver completo →
+                </button>
+              </div>
+              <BriefingDisplay briefingData={client.briefing_data} />
+            </GlassCard>
+          )}
+
           {/* Grid de informações */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Informações principais */}
         <GlassCard className="lg:col-span-2">
-          <h2 className="text-lg font-semibold text-white mb-4">Informações do Cliente</h2>
+          <div className="flex items-center gap-2 mb-4">
+            <Icon name="users" size="md" className="text-violet-400" />
+            <h2 className="text-lg font-semibold text-white">Informações do Cliente</h2>
+          </div>
 
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
-            <div>
-              <p className="text-sm text-zinc-500 mb-1">Contato</p>
-              <p className="text-white">{client.contact_name || '-'}</p>
+          {/* Seção de Contato */}
+          <div className="mb-6">
+            <h3 className="text-sm font-medium text-zinc-400 mb-3 flex items-center gap-2">
+              <Icon name="users" size="xs" />
+              Contato
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="p-3 rounded-lg bg-white/[0.02] border border-white/[0.06]">
+                <p className="text-xs text-zinc-500 mb-1">Nome</p>
+                <p className="text-sm text-white font-medium">{client.contact_name || '-'}</p>
+              </div>
+              <div className="p-3 rounded-lg bg-white/[0.02] border border-white/[0.06]">
+                <p className="text-xs text-zinc-500 mb-1">Email</p>
+                <p className="text-sm text-white">{client.contact_email || '-'}</p>
+              </div>
+              <div className="p-3 rounded-lg bg-white/[0.02] border border-white/[0.06]">
+                <p className="text-xs text-zinc-500 mb-1">Telefone</p>
+                <p className="text-sm text-white">{client.contact_phone ? formatPhone(client.contact_phone) : '-'}</p>
+              </div>
             </div>
-            <div>
-              <p className="text-sm text-zinc-500 mb-1">Email</p>
-              <p className="text-white">{client.contact_email || '-'}</p>
+          </div>
+
+          {/* Seção Financeiro */}
+          <div className="mb-6">
+            <h3 className="text-sm font-medium text-zinc-400 mb-3 flex items-center gap-2">
+              <Icon name="wallet" size="xs" />
+              Financeiro
+            </h3>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/20">
+                <p className="text-xs text-emerald-400 mb-1">Valor Mensal</p>
+                <p className="text-base text-white font-semibold">{formatCurrency(client.monthly_value)}</p>
+              </div>
+              <div className="p-3 rounded-lg bg-white/[0.02] border border-white/[0.06]">
+                <p className="text-xs text-zinc-500 mb-1">Ticket Médio</p>
+                <p className="text-sm text-white">{client.average_ticket ? formatCurrency(client.average_ticket) : '-'}</p>
+              </div>
+              <div className="p-3 rounded-lg bg-white/[0.02] border border-white/[0.06]">
+                <p className="text-xs text-zinc-500 mb-1">Vencimento</p>
+                <p className="text-sm text-white font-medium">Dia {client.due_day}</p>
+              </div>
+              <div className="p-3 rounded-lg bg-white/[0.02] border border-white/[0.06]">
+                <p className="text-xs text-zinc-500 mb-1">Cidade</p>
+                <p className="text-sm text-white">{client.city || '-'}</p>
+              </div>
             </div>
-            <div>
-              <p className="text-sm text-zinc-500 mb-1">Telefone</p>
-              <p className="text-white">{client.contact_phone ? formatPhone(client.contact_phone) : '-'}</p>
-            </div>
-            <div>
-              <p className="text-sm text-zinc-500 mb-1">Cidade</p>
-              <p className="text-white">{client.city || '-'}</p>
-            </div>
-            <div>
-              <p className="text-sm text-zinc-500 mb-1">Valor Mensal</p>
-              <p className="text-white font-medium">{formatCurrency(client.monthly_value)}</p>
-            </div>
-            <div>
-              <p className="text-sm text-zinc-500 mb-1">Ticket Médio</p>
-              <p className="text-white">{client.average_ticket ? formatCurrency(client.average_ticket) : '-'}</p>
-            </div>
-            <div>
-              <p className="text-sm text-zinc-500 mb-1">Dia de Vencimento</p>
-              <p className="text-white">Dia {client.due_day}</p>
-            </div>
-            <div>
-              <p className="text-sm text-zinc-500 mb-1">Segmento</p>
-              <p className="text-white">{segmentLabel}</p>
-            </div>
-            <div>
-              <p className="text-sm text-zinc-500 mb-1">Reuniões</p>
-              <p className="text-white">
-                {client.meeting_frequency
-                  ? MEETING_FREQUENCIES.find((f) => f.value === client.meeting_frequency)?.label || '-'
-                  : '-'}
-              </p>
+          </div>
+
+          {/* Seção de Informações Gerais */}
+          <div className="mb-6">
+            <h3 className="text-sm font-medium text-zinc-400 mb-3 flex items-center gap-2">
+              <Icon name="info" size="xs" />
+              Informações Gerais
+            </h3>
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+              <div className="p-3 rounded-lg bg-white/[0.02] border border-white/[0.06]">
+                <p className="text-xs text-zinc-500 mb-1">Segmento</p>
+                <p className="text-sm text-white">{segmentLabel}</p>
+              </div>
+              <div className="p-3 rounded-lg bg-white/[0.02] border border-white/[0.06]">
+                <p className="text-xs text-zinc-500 mb-1">Frequência de Reuniões</p>
+                <p className="text-sm text-white">
+                  {client.meeting_frequency
+                    ? MEETING_FREQUENCIES.find((f) => f.value === client.meeting_frequency)?.label || '-'
+                    : '-'}
+                </p>
+              </div>
             </div>
           </div>
 
           {/* Redes Sociais */}
           {(client.instagram_url || client.facebook_page_id) && (
-            <div className="mt-6 pt-6 border-t border-white/[0.05]">
-              <p className="text-sm text-zinc-500 mb-3">Redes Sociais</p>
+            <div className="mb-6">
+              <h3 className="text-sm font-medium text-zinc-400 mb-3 flex items-center gap-2">
+                <Icon name="instagram" size="xs" />
+                Redes Sociais
+              </h3>
               <div className="flex gap-3">
                 {client.instagram_url && (
                   <a
@@ -364,8 +445,11 @@ export function ClientDetailContent({ clientId }: ClientDetailContentProps) {
 
           {/* Estratégia */}
           {(client.peak_hours || client.differentials || client.ideal_customer || client.goals_short_term || client.goals_long_term) && (
-            <div className="mt-6 pt-6 border-t border-white/[0.05]">
-              <p className="text-sm text-zinc-500 mb-3">Estratégia & Metas</p>
+            <div className="mb-6">
+              <h3 className="text-sm font-medium text-zinc-400 mb-3 flex items-center gap-2">
+                <Icon name="lightbulb" size="xs" />
+                Estratégia & Metas
+              </h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {client.peak_hours && (
                   <div className="p-3 rounded-lg bg-white/[0.02]">
@@ -403,22 +487,31 @@ export function ClientDetailContent({ clientId }: ClientDetailContentProps) {
 
           {/* Solicitação de Produção de Conteúdo */}
           {client.content_request && (
-            <div className="mt-6 pt-6 border-t border-white/[0.05]">
-              <p className="text-sm text-zinc-500 mb-1">Solicitação de Produção de Conteúdo</p>
-              <p className="text-zinc-300">{client.content_request}</p>
+            <div className="mb-6">
+              <h3 className="text-sm font-medium text-zinc-400 mb-2 flex items-center gap-2">
+                <Icon name="filetext" size="xs" />
+                Solicitação de Produção de Conteúdo
+              </h3>
+              <p className="text-sm text-zinc-300 leading-relaxed">{client.content_request}</p>
             </div>
           )}
 
           {client.notes && (
-            <div className="mt-6 pt-6 border-t border-white/[0.05]">
-              <p className="text-sm text-zinc-500 mb-1">Observações</p>
-              <p className="text-zinc-300">{client.notes}</p>
+            <div className="mb-6">
+              <h3 className="text-sm font-medium text-zinc-400 mb-2 flex items-center gap-2">
+                <Icon name="filetext" size="xs" />
+                Observações
+              </h3>
+              <p className="text-sm text-zinc-300 leading-relaxed">{client.notes}</p>
             </div>
           )}
 
           {/* Links */}
-          <div className="mt-6 pt-6 border-t border-white/[0.05]">
-            <p className="text-sm text-zinc-500 mb-3">Links Rápidos</p>
+          <div className="mb-6">
+            <h3 className="text-sm font-medium text-zinc-400 mb-3 flex items-center gap-2">
+              <Icon name="search" size="xs" />
+              Links Rápidos
+            </h3>
             <div className="flex flex-wrap gap-3">
               {client.ads_account_url && (
                 <a
@@ -503,19 +596,28 @@ export function ClientDetailContent({ clientId }: ClientDetailContentProps) {
         {/* Métricas rápidas */}
         <div className="space-y-4">
           <GlassCard>
-            <h3 className="text-sm font-medium text-zinc-400 mb-2">Relatórios</h3>
+            <div className="flex items-center gap-2 mb-3">
+              <Icon name="barchart3" size="sm" className="text-blue-400" />
+              <h3 className="text-sm font-medium text-zinc-400">Relatórios</h3>
+            </div>
             <p className="text-3xl font-bold text-white">{reports.length}</p>
             <p className="text-xs text-zinc-500 mt-1">relatórios importados</p>
           </GlassCard>
 
           <GlassCard>
-            <h3 className="text-sm font-medium text-zinc-400 mb-2">Pagamentos</h3>
+            <div className="flex items-center gap-2 mb-3">
+              <Icon name="wallet" size="sm" className="text-emerald-400" />
+              <h3 className="text-sm font-medium text-zinc-400">Pagamentos</h3>
+            </div>
             <p className="text-3xl font-bold text-white">{payments.filter(p => p.status === 'paid').length}</p>
             <p className="text-xs text-zinc-500 mt-1">de {payments.length} pagamentos</p>
           </GlassCard>
 
           <GlassCard>
-            <h3 className="text-sm font-medium text-zinc-400 mb-2">Total Recebido</h3>
+            <div className="flex items-center gap-2 mb-3">
+              <Icon name="check-circle" size="sm" className="text-emerald-400" />
+              <h3 className="text-sm font-medium text-zinc-400">Total Recebido</h3>
+            </div>
             <p className="text-2xl font-bold text-emerald-400">
               {formatCurrency(payments.filter(p => p.status === 'paid').reduce((sum, p) => sum + Number(p.amount), 0))}
             </p>
@@ -598,6 +700,106 @@ export function ClientDetailContent({ clientId }: ClientDetailContentProps) {
         </GlassCard>
       )}
         </>
+      )}
+
+      {/* Aba de Briefing */}
+      {activeTab === 'briefing' && (
+        <div className="space-y-6">
+          <GlassCard>
+            <BriefingDisplay briefingData={client.briefing_data} />
+          </GlassCard>
+
+          {/* Informações de Gestão */}
+          <GlassCard>
+            <h3 className="text-lg font-semibold text-white mb-4">Gestão & Produção</h3>
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+              <div className="p-3 rounded-lg bg-white/[0.02]">
+                <p className="text-xs text-zinc-500 mb-1">Frequência de Reuniões</p>
+                <p className="text-sm text-white">
+                  {client.meeting_frequency
+                    ? MEETING_FREQUENCIES.find((f) => f.value === client.meeting_frequency)?.label
+                    : '-'}
+                </p>
+              </div>
+              <div className="p-3 rounded-lg bg-white/[0.02]">
+                <p className="text-xs text-zinc-500 mb-1">Frequência de Captações</p>
+                <p className="text-sm text-white">
+                  {client.captation_frequency
+                    ? CAPTATION_FREQUENCIES.find((f) => f.value === client.captation_frequency)?.label
+                    : '-'}
+                </p>
+              </div>
+              <div className="p-3 rounded-lg bg-white/[0.02]">
+                <p className="text-xs text-zinc-500 mb-1">Vídeos p/ Vendas</p>
+                <p className="text-sm text-white">
+                  {client.videos_sales
+                    ? VIDEO_QUANTITY_RANGES.find((f) => f.value === client.videos_sales)?.label
+                    : '-'}
+                </p>
+              </div>
+              <div className="p-3 rounded-lg bg-white/[0.02]">
+                <p className="text-xs text-zinc-500 mb-1">Vídeos p/ Reconhecimento</p>
+                <p className="text-sm text-white">
+                  {client.videos_awareness
+                    ? VIDEO_QUANTITY_RANGES.find((f) => f.value === client.videos_awareness)?.label
+                    : '-'}
+                </p>
+              </div>
+              {client.fixed_meeting_enabled && client.fixed_meeting_day && (
+                <div className="p-3 rounded-lg bg-violet-500/10 border border-violet-500/20 md:col-span-2">
+                  <p className="text-xs text-violet-400 mb-1">Reunião Fixa</p>
+                  <p className="text-sm text-white">
+                    {WEEK_DAYS.find((d) => d.value === client.fixed_meeting_day)?.label}
+                    {client.fixed_meeting_time && ` às ${client.fixed_meeting_time}`}
+                  </p>
+                </div>
+              )}
+            </div>
+          </GlassCard>
+        </div>
+      )}
+
+      {/* Aba de Inteligência */}
+      {activeTab === 'intelligence' && (
+        <div className="space-y-6">
+          {intelligenceGenerating ? (
+            <IntelligenceLoadingSkeleton
+              message={`Analisando dados de ${client.name}...`}
+            />
+          ) : (
+            <>
+              {/* Card principal de inteligência */}
+              <IntelligenceCard
+                intelligence={intelligence}
+                loading={intelligenceLoading}
+                generating={intelligenceGenerating}
+                isStale={intelligenceIsStale}
+                onGenerate={intelligence ? regenerateIntelligence : generateIntelligence}
+              />
+
+              {/* Conteúdo da inteligência */}
+              {intelligence && (
+                <>
+                  {/* Resumo Executivo */}
+                  <ExecutiveSummaryCard
+                    summary={intelligence.executive_summary}
+                    lastUpdated={intelligence.last_generated_at}
+                  />
+
+                  {/* Sugestões de Conteúdo */}
+                  <ContentSuggestionsGrid
+                    suggestions={intelligence.content_suggestions || []}
+                  />
+
+                  {/* Ofertas Sazonais */}
+                  <SeasonalOffersCarousel
+                    offers={intelligence.seasonal_offers || []}
+                  />
+                </>
+              )}
+            </>
+          )}
+        </div>
       )}
 
       {/* Aba de Tarefas */}

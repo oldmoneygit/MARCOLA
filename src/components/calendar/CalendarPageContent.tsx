@@ -11,38 +11,22 @@ import { format, startOfMonth, endOfMonth } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
-import { Button, GlassCard, Modal, Skeleton } from '@/components/ui';
+import { Button, GlassCard, Modal, Skeleton, Icon } from '@/components/ui';
 import { CalendarGrid } from './CalendarGrid';
 import { CalendarEventForm } from './CalendarEventForm';
 
 import { useCalendar, useClients } from '@/hooks';
 
-import type { CalendarEvent, CreateCalendarEventDTO, ContentType, ContentStatus } from '@/types';
+import { CONTENT_TYPE_CONFIG, CONTENT_STATUS_CONFIG, type CalendarEvent, type CreateCalendarEventDTO, type ContentType, type ContentStatus } from '@/types';
 
 interface ClientOption {
   id: string;
   name: string;
 }
 
-const CONTENT_TYPE_CONFIG: Record<ContentType, { label: string; icon: string; color: string }> = {
-  post: { label: 'Post', icon: '📱', color: 'bg-blue-500' },
-  video: { label: 'Vídeo', icon: '🎥', color: 'bg-red-500' },
-  reels: { label: 'Reels', icon: '🎬', color: 'bg-purple-500' },
-  stories: { label: 'Stories', icon: '📷', color: 'bg-pink-500' },
-  promo: { label: 'Promoção', icon: '🏷️', color: 'bg-amber-500' },
-  campaign: { label: 'Campanha', icon: '📢', color: 'bg-green-500' },
-  event: { label: 'Evento', icon: '🗓️', color: 'bg-cyan-500' },
-  other: { label: 'Outro', icon: '📌', color: 'bg-zinc-500' },
-};
+// Configuração removida - usando CONTENT_TYPE_CONFIG de @/types
 
-const STATUS_CONFIG: Record<ContentStatus, { label: string; color: string }> = {
-  planned: { label: 'Planejado', color: 'text-zinc-400' },
-  creating: { label: 'Criando', color: 'text-yellow-400' },
-  review: { label: 'Em revisão', color: 'text-blue-400' },
-  approved: { label: 'Aprovado', color: 'text-emerald-400' },
-  published: { label: 'Publicado', color: 'text-green-400' },
-  cancelled: { label: 'Cancelado', color: 'text-red-400' },
-};
+// Configuração removida - usando CONTENT_STATUS_CONFIG de @/types
 
 /**
  * Componente principal da página de calendário
@@ -214,16 +198,16 @@ export function CalendarPageContent() {
 
             {/* Filtro por tipo */}
             <div className="mb-4">
-              <label className="block text-xs text-zinc-500 mb-2">Tipo de Conteúdo</label>
+              <label className="block text-xs text-zinc-400 mb-2">Tipo de Conteúdo</label>
               <select
                 value={filterType}
                 onChange={e => setFilterType(e.target.value as ContentType | 'all')}
-                className="w-full px-3 py-2 text-sm rounded-lg bg-white/[0.03] border border-white/[0.08] text-white focus:outline-none focus:border-violet-500/50"
+                className="w-full px-3 py-2 text-sm rounded-lg bg-zinc-900/80 border border-zinc-700/50 text-white focus:outline-none focus:border-violet-500/50 focus:ring-1 focus:ring-violet-500/30 transition-colors cursor-pointer hover:border-zinc-600/70"
               >
-                <option value="all">Todos</option>
+                <option value="all" className="bg-zinc-900 text-white">Todos</option>
                 {Object.entries(CONTENT_TYPE_CONFIG).map(([type, config]) => (
-                  <option key={type} value={type}>
-                    {config.icon} {config.label}
+                  <option key={type} value={type} className="bg-zinc-900 text-white">
+                    {config.label}
                   </option>
                 ))}
               </select>
@@ -231,15 +215,15 @@ export function CalendarPageContent() {
 
             {/* Filtro por status */}
             <div>
-              <label className="block text-xs text-zinc-500 mb-2">Status</label>
+              <label className="block text-xs text-zinc-400 mb-2">Status</label>
               <select
                 value={filterStatus}
                 onChange={e => setFilterStatus(e.target.value as ContentStatus | 'all')}
-                className="w-full px-3 py-2 text-sm rounded-lg bg-white/[0.03] border border-white/[0.08] text-white focus:outline-none focus:border-violet-500/50"
+                className="w-full px-3 py-2 text-sm rounded-lg bg-zinc-900/80 border border-zinc-700/50 text-white focus:outline-none focus:border-violet-500/50 focus:ring-1 focus:ring-violet-500/30 transition-colors cursor-pointer hover:border-zinc-600/70"
               >
-                <option value="all">Todos</option>
-                {Object.entries(STATUS_CONFIG).map(([status, config]) => (
-                  <option key={status} value={status}>
+                <option value="all" className="bg-zinc-900 text-white">Todos</option>
+                {Object.entries(CONTENT_STATUS_CONFIG).map(([status, config]) => (
+                  <option key={status} value={status} className="bg-zinc-900 text-white">
                     {config.label}
                   </option>
                 ))}
@@ -260,12 +244,15 @@ export function CalendarPageContent() {
 
             {/* Por status */}
             <div className="space-y-2 mb-4">
-              {Object.entries(STATUS_CONFIG).map(([status, config]) => {
+              {Object.entries(CONTENT_STATUS_CONFIG).map(([status, config]) => {
                 const count = monthStats.byStatus[status as ContentStatus];
                 if (count === 0) { return null; }
                 return (
                   <div key={status} className="flex items-center justify-between text-sm">
-                    <span className={config.color}>{config.label}</span>
+                    <div className="flex items-center gap-2">
+                      <Icon name={config.icon} size="xs" className={config.iconColor} />
+                      <span className={config.textColor}>{config.label}</span>
+                    </div>
                     <span className="text-zinc-400">{count}</span>
                   </div>
                 );
@@ -275,17 +262,18 @@ export function CalendarPageContent() {
             {/* Por tipo */}
             <div className="pt-4 border-t border-white/[0.06]">
               <p className="text-xs text-zinc-500 mb-2">Por tipo</p>
-              <div className="flex flex-wrap gap-1">
+              <div className="flex flex-wrap gap-1.5">
                 {Object.entries(CONTENT_TYPE_CONFIG).map(([type, config]) => {
                   const count = monthStats.byType[type as ContentType];
                   if (count === 0) { return null; }
                   return (
                     <span
                       key={type}
-                      className={`px-2 py-1 text-xs rounded-full ${config.color} bg-opacity-20 text-white`}
+                      className={`inline-flex items-center gap-1.5 px-2.5 py-1 text-xs rounded-lg font-medium ${config.bgColor} ${config.textColor} ${config.borderColor} border`}
                       title={config.label}
                     >
-                      {config.icon} {count}
+                      <Icon name={config.icon} size="xs" className={config.iconColor} />
+                      {count}
                     </span>
                   );
                 })}
@@ -299,7 +287,7 @@ export function CalendarPageContent() {
             <div className="space-y-2">
               {Object.entries(CONTENT_TYPE_CONFIG).slice(0, 6).map(([type, config]) => (
                 <div key={type} className="flex items-center gap-2 text-xs">
-                  <span className={`w-3 h-3 rounded ${config.color}`} />
+                  <Icon name={config.icon} size="xs" className={config.iconColor} />
                   <span className="text-zinc-400">{config.label}</span>
                 </div>
               ))}

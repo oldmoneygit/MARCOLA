@@ -9,7 +9,7 @@
 import { useCallback, useMemo, useState } from 'react';
 
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
-import { Button, GlassCard, Modal, Skeleton, EmptyState } from '@/components/ui';
+import { Button, GlassCard, Modal, Skeleton, EmptyState, Icon } from '@/components/ui';
 import { PriorityBadge } from '@/components/tasks';
 
 import { useTaskTemplates } from '@/hooks';
@@ -147,12 +147,12 @@ function TemplateForm({ template, onSubmit, onCancel, loading = false }: Templat
           name="segment"
           value={formData.segment}
           onChange={handleChange}
-          className="w-full px-3 py-2 rounded-lg bg-white/[0.03] border border-white/[0.08] text-white focus:outline-none focus:border-violet-500/50 focus:ring-1 focus:ring-violet-500/50 transition-colors"
+          className="w-full px-3 py-2 rounded-lg bg-zinc-900/80 border border-zinc-700/50 text-white focus:outline-none focus:border-violet-500/50 focus:ring-1 focus:ring-violet-500/30 transition-colors cursor-pointer hover:border-zinc-600/70"
         >
-          <option value="">Selecione um segmento</option>
+          <option value="" className="bg-zinc-900 text-zinc-400">Selecione um segmento</option>
           {COMMON_SEGMENTS.map(seg => (
-            <option key={seg.value} value={seg.value}>
-              {seg.icon} {seg.label}
+            <option key={seg.value} value={seg.value} className="bg-zinc-900 text-white">
+              {seg.label}
             </option>
           ))}
         </select>
@@ -169,11 +169,11 @@ function TemplateForm({ template, onSubmit, onCancel, loading = false }: Templat
             name="default_priority"
             value={formData.default_priority}
             onChange={handleChange}
-            className="w-full px-3 py-2 rounded-lg bg-white/[0.03] border border-white/[0.08] text-white focus:outline-none focus:border-violet-500/50 focus:ring-1 focus:ring-violet-500/50 transition-colors"
+            className="w-full px-3 py-2 rounded-lg bg-zinc-900/80 border border-zinc-700/50 text-white focus:outline-none focus:border-violet-500/50 focus:ring-1 focus:ring-violet-500/30 transition-colors cursor-pointer hover:border-zinc-600/70"
           >
             {Object.entries(TASK_PRIORITY_CONFIG).map(([priority, config]) => (
-              <option key={priority} value={priority}>
-                {config.icon} {config.label}
+              <option key={priority} value={priority} className="bg-zinc-900 text-white">
+                {config.label}
               </option>
             ))}
           </select>
@@ -212,11 +212,11 @@ function TemplateForm({ template, onSubmit, onCancel, loading = false }: Templat
             name="recurrence"
             value={formData.recurrence}
             onChange={handleChange}
-            className="w-full px-3 py-2 rounded-lg bg-white/[0.03] border border-white/[0.08] text-white focus:outline-none focus:border-violet-500/50 focus:ring-1 focus:ring-violet-500/50 transition-colors"
+            className="w-full px-3 py-2 rounded-lg bg-zinc-900/80 border border-zinc-700/50 text-white focus:outline-none focus:border-violet-500/50 focus:ring-1 focus:ring-violet-500/30 transition-colors cursor-pointer hover:border-zinc-600/70"
           >
-            <option value="">Selecione a frequência</option>
+            <option value="" className="bg-zinc-900 text-zinc-400">Selecione a frequência</option>
             {Object.entries(TASK_RECURRENCE_CONFIG).map(([recurrence, config]) => (
-              <option key={recurrence} value={recurrence}>
+              <option key={recurrence} value={recurrence} className="bg-zinc-900 text-white">
                 {config.label}
               </option>
             ))}
@@ -300,8 +300,9 @@ function TemplateCard({ template, onEdit, onDelete, onToggleActive }: TemplateCa
 
       <div className="flex flex-wrap items-center gap-2 mb-4 text-xs">
         {segmentInfo && (
-          <span className="px-2 py-1 rounded-full bg-violet-500/10 text-violet-400">
-            {segmentInfo.icon} {segmentInfo.label}
+          <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded-full bg-violet-500/10 text-violet-400">
+            <Icon name={segmentInfo.icon} size="xs" />
+            {segmentInfo.label}
           </span>
         )}
         {!segmentInfo && template.segment && (
@@ -463,16 +464,16 @@ export function TemplatesPageContent() {
       {/* Filtros */}
       <div className="flex flex-wrap items-center gap-4 mb-6">
         <div className="flex items-center gap-2">
-          <span className="text-xs text-zinc-500">Segmento:</span>
+          <span className="text-xs text-zinc-400">Segmento:</span>
           <select
             value={filterSegment}
             onChange={e => setFilterSegment(e.target.value)}
-            className="px-3 py-2 text-sm rounded-lg bg-white/[0.03] border border-white/[0.08] text-white focus:outline-none focus:border-violet-500/50"
+            className="px-3 py-2 text-sm rounded-lg bg-zinc-900/80 border border-zinc-700/50 text-white focus:outline-none focus:border-violet-500/50 focus:ring-1 focus:ring-violet-500/30 transition-colors cursor-pointer hover:border-zinc-600/70"
           >
-            <option value="all">Todos</option>
+            <option value="all" className="bg-zinc-900 text-white">Todos</option>
             {COMMON_SEGMENTS.map(seg => (
-              <option key={seg.value} value={seg.value}>
-                {seg.icon} {seg.label}
+              <option key={seg.value} value={seg.value} className="bg-zinc-900 text-white">
+                {seg.label}
               </option>
             ))}
           </select>
@@ -510,8 +511,13 @@ export function TemplatesPageContent() {
             return (
               <div key={segment}>
                 <h2 className="text-sm font-medium text-zinc-400 mb-4 flex items-center gap-2">
-                  {segmentInfo && <span>{segmentInfo.icon}</span>}
-                  {segmentInfo?.label || segment} ({segmentTemplates.length})
+                  {segmentInfo && (
+                    <div className="p-1.5 rounded-lg bg-violet-500/10">
+                      <Icon name={segmentInfo.icon} size="sm" className="text-violet-400" />
+                    </div>
+                  )}
+                  <span>{segmentInfo?.label || segment}</span>
+                  <span className="text-xs text-zinc-500 font-normal">({segmentTemplates.length})</span>
                 </h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   {segmentTemplates.map(template => (

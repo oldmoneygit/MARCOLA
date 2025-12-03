@@ -136,74 +136,152 @@ export interface CalendarMonth {
 // =============================================================================
 
 /** Configuração de tipos de conteúdo */
-export const CONTENT_TYPE_CONFIG: Record<ContentType, { label: string; icon: string; className: string }> = {
+export const CONTENT_TYPE_CONFIG: Record<ContentType, {
+  label: string;
+  icon: string;
+  iconColor: string;
+  bgColor: string;
+  textColor: string;
+  borderColor: string;
+  className: string;
+}> = {
   post: {
     label: 'Post',
     icon: 'image',
-    className: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
+    iconColor: 'text-blue-500',
+    bgColor: 'bg-blue-500/25',
+    textColor: 'text-blue-200',
+    borderColor: 'border-blue-500/60',
+    className: 'bg-blue-500/25 text-blue-200 border-blue-500/60',
   },
   video: {
     label: 'Vídeo',
     icon: 'video',
-    className: 'bg-purple-500/20 text-purple-400 border-purple-500/30',
+    iconColor: 'text-purple-500',
+    bgColor: 'bg-purple-500/25',
+    textColor: 'text-purple-200',
+    borderColor: 'border-purple-500/60',
+    className: 'bg-purple-500/25 text-purple-200 border-purple-500/60',
   },
   reels: {
     label: 'Reels',
     icon: 'reels',
-    className: 'bg-pink-500/20 text-pink-400 border-pink-500/30',
+    iconColor: 'text-pink-500',
+    bgColor: 'bg-pink-500/25',
+    textColor: 'text-pink-200',
+    borderColor: 'border-pink-500/60',
+    className: 'bg-pink-500/25 text-pink-200 border-pink-500/60',
   },
   stories: {
     label: 'Stories',
     icon: 'stories',
-    className: 'bg-orange-500/20 text-orange-400 border-orange-500/30',
+    iconColor: 'text-orange-500',
+    bgColor: 'bg-orange-500/25',
+    textColor: 'text-orange-200',
+    borderColor: 'border-orange-500/60',
+    className: 'bg-orange-500/25 text-orange-200 border-orange-500/60',
   },
   promo: {
     label: 'Promoção',
     icon: 'promo',
-    className: 'bg-green-500/20 text-green-400 border-green-500/30',
+    iconColor: 'text-emerald-500',
+    bgColor: 'bg-emerald-500/25',
+    textColor: 'text-emerald-200',
+    borderColor: 'border-emerald-500/60',
+    className: 'bg-emerald-500/25 text-emerald-200 border-emerald-500/60',
   },
   campaign: {
     label: 'Campanha',
     icon: 'campaign',
-    className: 'bg-violet-500/20 text-violet-400 border-violet-500/30',
+    iconColor: 'text-violet-500',
+    bgColor: 'bg-violet-500/25',
+    textColor: 'text-violet-200',
+    borderColor: 'border-violet-500/60',
+    className: 'bg-violet-500/25 text-violet-200 border-violet-500/60',
   },
   event: {
     label: 'Evento',
     icon: 'events',
-    className: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30',
+    iconColor: 'text-yellow-500',
+    bgColor: 'bg-yellow-500/25',
+    textColor: 'text-yellow-200',
+    borderColor: 'border-yellow-500/60',
+    className: 'bg-yellow-500/25 text-yellow-200 border-yellow-500/60',
   },
   other: {
     label: 'Outro',
     icon: 'pin',
-    className: 'bg-zinc-500/20 text-zinc-400 border-zinc-500/30',
+    iconColor: 'text-zinc-500',
+    bgColor: 'bg-zinc-500/25',
+    textColor: 'text-zinc-200',
+    borderColor: 'border-zinc-500/60',
+    className: 'bg-zinc-500/25 text-zinc-200 border-zinc-500/60',
   },
 };
 
 /** Configuração de status de conteúdo */
-export const CONTENT_STATUS_CONFIG: Record<ContentStatus, { label: string; className: string }> = {
+export const CONTENT_STATUS_CONFIG: Record<ContentStatus, {
+  label: string;
+  icon: string;
+  iconColor: string;
+  dotColor: string;
+  bgColor: string;
+  textColor: string;
+  borderColor: string;
+}> = {
   planned: {
     label: 'Planejado',
-    className: 'bg-zinc-500/20 text-zinc-400',
+    icon: 'clock',
+    iconColor: 'text-slate-400',
+    dotColor: 'bg-slate-500',
+    bgColor: 'bg-slate-500/25',
+    textColor: 'text-slate-200',
+    borderColor: 'border-slate-500/60',
   },
   creating: {
     label: 'Criando',
-    className: 'bg-blue-500/20 text-blue-400',
+    icon: 'play',
+    iconColor: 'text-blue-500',
+    dotColor: 'bg-blue-500',
+    bgColor: 'bg-blue-500/25',
+    textColor: 'text-blue-200',
+    borderColor: 'border-blue-500/60',
   },
   review: {
     label: 'Em Revisão',
-    className: 'bg-yellow-500/20 text-yellow-400',
+    icon: 'alert',
+    iconColor: 'text-amber-500',
+    dotColor: 'bg-amber-500',
+    bgColor: 'bg-amber-500/25',
+    textColor: 'text-amber-200',
+    borderColor: 'border-amber-500/60',
   },
   approved: {
     label: 'Aprovado',
-    className: 'bg-emerald-500/20 text-emerald-400',
+    icon: 'check',
+    iconColor: 'text-emerald-500',
+    dotColor: 'bg-emerald-500',
+    bgColor: 'bg-emerald-500/25',
+    textColor: 'text-emerald-200',
+    borderColor: 'border-emerald-500/60',
   },
   published: {
     label: 'Publicado',
-    className: 'bg-green-500/20 text-green-400',
+    icon: 'check-circle',
+    iconColor: 'text-green-500',
+    dotColor: 'bg-green-500',
+    bgColor: 'bg-green-500/25',
+    textColor: 'text-green-200',
+    borderColor: 'border-green-500/60',
   },
   cancelled: {
     label: 'Cancelado',
-    className: 'bg-red-500/20 text-red-400',
+    icon: 'x-circle',
+    iconColor: 'text-red-500',
+    dotColor: 'bg-red-500',
+    bgColor: 'bg-red-500/25',
+    textColor: 'text-red-200',
+    borderColor: 'border-red-500/60',
   },
 };
 

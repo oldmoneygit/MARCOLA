@@ -83,23 +83,19 @@ export async function PUT(request: NextRequest, context: RouteContext) {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
     }
 
-    // Verificar se o template pertence ao usuário
+    // Verificar se o template existe
     const { data: existingTemplate, error: existingError } = await supabase
       .from('briefing_templates')
       .select('id, user_id')
       .eq('id', id)
+      .or(`user_id.eq.${user.id},user_id.is.null`)
       .single();
 
     if (existingError || !existingTemplate) {
       return NextResponse.json({ error: 'Briefing não encontrado' }, { status: 404 });
     }
 
-    if (existingTemplate.user_id !== user.id) {
-      return NextResponse.json(
-        { error: 'Não é possível editar templates do sistema' },
-        { status: 403 }
-      );
-    }
+    // Permitir edição de templates do sistema (user_id null) e templates do usuário
 
     const body: UpdateBriefingTemplateDTO & { questions?: CreateBriefingQuestionDTO[] } =
       await request.json();

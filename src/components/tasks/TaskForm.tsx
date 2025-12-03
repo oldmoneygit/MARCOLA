@@ -32,7 +32,8 @@ interface TaskFormProps {
 
 const priorityOptions = Object.entries(TASK_PRIORITY_CONFIG).map(([value, config]) => ({
   value,
-  label: `${config.icon} ${config.label}`,
+  label: config.label,
+  icon: config.icon,
 }));
 
 const recurrenceOptions = [

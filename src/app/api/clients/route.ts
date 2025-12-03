@@ -7,9 +7,75 @@
 import { NextResponse } from 'next/server';
 
 import { createClient } from '@/lib/supabase/server';
+import { MEETING_FREQUENCIES, WEEK_DAYS } from '@/lib/constants';
 
-import type { CreateClientDTO } from '@/types';
+import type { CreateClientDTO, WeekDay, MeetingFrequency } from '@/types';
 import type { NextRequest } from 'next/server';
+
+/**
+ * Mapeia o dia da semana para o índice (0 = domingo, 1 = segunda, etc.)
+ */
+const DAY_INDEX_MAP: Record<WeekDay, number> = {
+  sunday: 0,
+  monday: 1,
+  tuesday: 2,
+  wednesday: 3,
+  thursday: 4,
+  friday: 5,
+  saturday: 6,
+};
+
+/**
+ * Retorna o intervalo em semanas baseado na frequência
+ */
+function getWeekInterval(frequency: MeetingFrequency): number {
+  switch (frequency) {
+    case 'weekly':
+      return 1;
+    case 'biweekly':
+      return 2;
+    case 'monthly':
+      return 4;
+    default:
+      return 1;
+  }
+}
+
+/**
+ * Gera as datas das reuniões para os próximos 3 meses
+ */
+function generateMeetingDates(
+  dayOfWeek: WeekDay,
+  frequency: MeetingFrequency,
+  monthsAhead: number = 3
+): Date[] {
+  const dates: Date[] = [];
+  const targetDayIndex = DAY_INDEX_MAP[dayOfWeek];
+  const weekInterval = getWeekInterval(frequency);
+
+  // Encontrar a próxima ocorrência do dia da semana
+  const today = new Date();
+  const nextDate = new Date(today);
+
+  // Ajustar para o próximo dia da semana desejado
+  const currentDayIndex = today.getDay();
+  let daysUntilTarget = targetDayIndex - currentDayIndex;
+  if (daysUntilTarget <= 0) {
+    daysUntilTarget += 7;
+  }
+  nextDate.setDate(today.getDate() + daysUntilTarget);
+
+  // Limitar até X meses no futuro
+  const endDate = new Date(today);
+  endDate.setMonth(endDate.getMonth() + monthsAhead);
+
+  while (nextDate <= endDate) {
+    dates.push(new Date(nextDate));
+    nextDate.setDate(nextDate.getDate() + weekInterval * 7);
+  }
+
+  return dates;
+}
 
 /**
  * GET /api/clients
@@ -107,8 +173,16 @@ export async function POST(request: NextRequest) {
         goals_long_term: body.goals_long_term || null,
         // Gestão e produção
         meeting_frequency: body.meeting_frequency || null,
+        captation_frequency: body.captation_frequency || null,
+        videos_sales: body.videos_sales || null,
+        videos_awareness: body.videos_awareness || null,
+        fixed_meeting_enabled: body.fixed_meeting_enabled ?? null,
+        fixed_meeting_day: body.fixed_meeting_day || null,
+        fixed_meeting_time: body.fixed_meeting_time || null,
         image_authorization: body.image_authorization ?? null,
         content_request: body.content_request || null,
+        // Briefing
+        briefing_data: body.briefing_data || null,
         // Observações
         notes: body.notes || null,
       })
@@ -118,6 +192,59 @@ export async function POST(request: NextRequest) {
     if (error) {
       console.error('[API] POST /api/clients error:', error);
       return NextResponse.json({ error: 'Erro ao criar cliente' }, { status: 500 });
+    }
+
+    // Criar eventos de reunião recorrentes se dia fixo estiver habilitado
+    if (
+      body.fixed_meeting_enabled &&
+      body.fixed_meeting_day &&
+      body.meeting_frequency &&
+      body.meeting_frequency !== 'on_demand'
+    ) {
+      try {
+        const meetingDates = generateMeetingDates(
+          body.fixed_meeting_day,
+          body.meeting_frequency,
+          3 // 3 meses de reuniões
+        );
+
+        const frequencyLabel = MEETING_FREQUENCIES.find(
+          (f) => f.value === body.meeting_frequency
+        )?.label || body.meeting_frequency;
+
+        const dayLabel = WEEK_DAYS.find(
+          (d) => d.value === body.fixed_meeting_day
+        )?.label || body.fixed_meeting_day;
+
+        // Criar eventos de reunião no calendário
+        const meetingEvents = meetingDates.map((date) => ({
+          user_id: user.id,
+          client_id: client.id,
+          title: `Reunião - ${body.name}`,
+          description: `Reunião ${frequencyLabel.toLowerCase()} com ${body.name}.\nDia fixo: ${dayLabel}${body.fixed_meeting_time ? ` às ${body.fixed_meeting_time}` : ''}`,
+          type: 'event' as const,
+          scheduled_date: date.toISOString().split('T')[0],
+          scheduled_time: body.fixed_meeting_time || null,
+          status: 'planned' as const,
+          platform: [],
+          color: '#8b5cf6', // Violeta para reuniões
+          notes: `Reunião ${frequencyLabel.toLowerCase()} configurada automaticamente`,
+        }));
+
+        if (meetingEvents.length > 0) {
+          const { error: eventsError } = await supabase
+            .from('calendar_events')
+            .insert(meetingEvents);
+
+          if (eventsError) {
+            console.error('[API] Error creating meeting events:', eventsError);
+            // Não falhar a criação do cliente, apenas logar o erro
+          }
+        }
+      } catch (eventsErr) {
+        console.error('[API] Error generating meeting events:', eventsErr);
+        // Não falhar a criação do cliente
+      }
     }
 
     return NextResponse.json(client, { status: 201 });

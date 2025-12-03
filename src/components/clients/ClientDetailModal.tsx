@@ -1,6 +1,6 @@
 /**
  * @file ClientDetailModal.tsx
- * @description Modal de detalhes completos do cliente com todas as informações de onboarding
+ * @description Modal de perfil completo do cliente com todas as informações
  * @module components/clients
  */
 
@@ -8,13 +8,21 @@
 
 import { useCallback, useEffect, useState } from 'react';
 
-import { Button, Modal, StatusBadge } from '@/components/ui';
+import { Button, GlassCard, Icon, Modal, StatusBadge } from '@/components/ui';
 import { CLIENT_STATUS, SEGMENTS } from '@/lib/constants';
 import { formatCurrency, formatPhone } from '@/lib/utils';
 import { AvatarUpload } from './AvatarUpload';
 import { CredentialsList } from './CredentialsList';
+import {
+  IntelligenceCard,
+  ExecutiveSummaryCard,
+  ContentSuggestionsGrid,
+  SeasonalOffersCarousel,
+  IntelligenceLoadingSkeleton,
+} from '@/components/intelligence';
+import { useClientIntelligence } from '@/hooks';
 
-import type { Client, Report, Payment } from '@/types';
+import type { Client, Report, Payment, BriefingData, BriefingAnswer } from '@/types';
 
 interface ClientDetailModalProps {
   client: Client | null;
@@ -24,7 +32,7 @@ interface ClientDetailModalProps {
   onClientUpdate?: (client: Client) => void;
 }
 
-type TabType = 'info' | 'strategy' | 'credentials' | 'reports' | 'payments';
+type TabType = 'overview' | 'briefing' | 'intelligence' | 'credentials' | 'reports' | 'payments';
 
 /**
  * Labels para frequência de reunião
@@ -37,9 +45,54 @@ const MEETING_FREQUENCY_LABELS: Record<string, string> = {
 };
 
 /**
+ * Configuração das abas
+ */
+const TABS: { id: TabType; label: string; icon: string }[] = [
+  { id: 'overview', label: 'Visão Geral', icon: 'user' },
+  { id: 'briefing', label: 'Briefing', icon: 'clipboard-list' },
+  { id: 'intelligence', label: 'Inteligência', icon: 'bot' },
+  { id: 'credentials', label: 'Credenciais', icon: 'key' },
+  { id: 'reports', label: 'Relatórios', icon: 'bar-chart-2' },
+  { id: 'payments', label: 'Pagamentos', icon: 'credit-card' },
+];
+
+/**
+ * Componente de seção com título
+ */
+function Section({
+  title,
+  children,
+  icon,
+  className = ''
+}: {
+  title: string;
+  children: React.ReactNode;
+  icon: string;
+  className?: string;
+}) {
+  return (
+    <div className={`space-y-3 ${className}`}>
+      <div className="flex items-center gap-2 text-zinc-400 border-b border-white/[0.05] pb-2">
+        <Icon name={icon} size="sm" />
+        <h4 className="text-sm font-medium">{title}</h4>
+      </div>
+      {children}
+    </div>
+  );
+}
+
+/**
  * Componente de item de informação
  */
-function InfoItem({ label, value, isLink = false }: { label: string; value: string | null | undefined; isLink?: boolean }) {
+function InfoItem({
+  label,
+  value,
+  isLink = false
+}: {
+  label: string;
+  value: string | null | undefined;
+  isLink?: boolean
+}) {
   if (!value) {
     return null;
   }
@@ -64,29 +117,83 @@ function InfoItem({ label, value, isLink = false }: { label: string; value: stri
 }
 
 /**
- * Componente de seção com título
+ * Formata o valor da resposta baseado no tipo
  */
-function Section({ title, children, icon }: { title: string; children: React.ReactNode; icon: React.ReactNode }) {
+function formatBriefingValue(value: BriefingAnswer['value'], fieldType: string): string {
+  if (value === null || value === undefined || value === '') {
+    return '-';
+  }
+
+  if (Array.isArray(value)) {
+    return value.join(', ');
+  }
+
+  if (typeof value === 'boolean') {
+    return value ? 'Sim' : 'Não';
+  }
+
+  if (typeof value === 'number') {
+    return value.toString();
+  }
+
+  // Para campos de data
+  if (fieldType === 'date' && typeof value === 'string') {
+    try {
+      return new Date(value).toLocaleDateString('pt-BR');
+    } catch {
+      return value;
+    }
+  }
+
+  return String(value);
+}
+
+/**
+ * Componente para exibir item de briefing
+ */
+function BriefingItem({ answer }: { answer: BriefingAnswer }) {
+  const displayValue = formatBriefingValue(answer.value, answer.field_type);
+
+  if (displayValue === '-' || displayValue === '') {
+    return null;
+  }
+
   return (
-    <div className="space-y-3">
-      <div className="flex items-center gap-2 text-zinc-400 border-b border-white/[0.05] pb-2">
-        {icon}
-        <h4 className="text-sm font-medium">{title}</h4>
-      </div>
-      {children}
+    <div className="p-4 rounded-xl bg-white/[0.02] border border-white/[0.05] hover:bg-white/[0.03] transition-colors">
+      <p className="text-xs text-zinc-500 mb-2">{answer.question_text}</p>
+      <p className="text-sm text-white whitespace-pre-wrap">{displayValue}</p>
     </div>
   );
 }
 
 /**
- * Modal de detalhes do cliente
+ * Modal de perfil do cliente
  */
-export function ClientDetailModal({ client, isOpen, onClose, onEdit, onClientUpdate }: ClientDetailModalProps) {
+export function ClientDetailModal({
+  client,
+  isOpen,
+  onClose,
+  onEdit,
+  onClientUpdate
+}: ClientDetailModalProps) {
   const [reports, setReports] = useState<Report[]>([]);
   const [payments, setPayments] = useState<Payment[]>([]);
-  const [activeTab, setActiveTab] = useState<TabType>('info');
+  const [activeTab, setActiveTab] = useState<TabType>('overview');
   const [loading, setLoading] = useState(false);
   const [localClient, setLocalClient] = useState<Client | null>(client);
+
+  // Hook para inteligência do cliente
+  const {
+    intelligence,
+    loading: intelligenceLoading,
+    generating: intelligenceGenerating,
+    isStale: intelligenceIsStale,
+    generate: generateIntelligence,
+    regenerate: regenerateIntelligence,
+  } = useClientIntelligence({
+    clientId: client?.id || '',
+    autoFetch: isOpen && activeTab === 'intelligence',
+  });
 
   // Sincroniza o cliente local quando o prop mudar
   useEffect(() => {
@@ -137,7 +244,7 @@ export function ClientDetailModal({ client, isOpen, onClose, onEdit, onClientUpd
   // Reset tab quando fechar
   useEffect(() => {
     if (!isOpen) {
-      setActiveTab('info');
+      setActiveTab('overview');
     }
   }, [isOpen]);
 
@@ -158,517 +265,572 @@ export function ClientDetailModal({ client, isOpen, onClose, onEdit, onClientUpd
   const paidPayments = payments.filter((p) => p.status === 'paid');
   const totalReceived = paidPayments.reduce((sum, p) => sum + Number(p.amount), 0);
 
-  // Verificar se tem dados de estratégia
-  const hasStrategyData = localClient.differentials || localClient.ideal_customer || localClient.goals_short_term ||
-    localClient.goals_long_term || localClient.content_request || localClient.peak_hours;
+  // Verificar se tem dados de briefing
+  const briefingData = localClient.briefing_data as BriefingData | null;
+  const hasBriefingData = briefingData && Object.keys(briefingData).length > 0;
+
+  // Filtrar tabs visíveis
+  const visibleTabs = TABS.filter(tab => {
+    if (tab.id === 'briefing' && !hasBriefingData) {
+      return false;
+    }
+    return true;
+  });
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title={localClient.name} size="xl">
-      <div className="space-y-6">
-        {/* Header com avatar, status e segmento */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            {/* Avatar com upload integrado */}
-            <AvatarUpload
-              client={localClient}
-              onUpdate={handleAvatarUpdate}
-              size="sm"
-            />
-            <div>
-              <p className="text-zinc-400 text-sm">{segmentLabel}</p>
-              <div className="flex items-center gap-2 mt-1">
-                <StatusBadge status={localClient.status} label={statusConfig.label} />
-                {localClient.city && (
-                  <span className="text-xs text-zinc-500 flex items-center gap-1">
-                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                    </svg>
-                    {localClient.city}
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      size="profile"
+      showCloseButton={false}
+      noPadding
+    >
+      <div className="flex flex-col h-full">
+        {/* Header do Perfil */}
+        <div className="relative">
+          {/* Background gradient - usa cores da marca se disponíveis */}
+          <div
+            className="h-24"
+            style={
+              localClient.brand_colors
+                ? {
+                    background: `linear-gradient(to right, ${localClient.brand_colors.primary}40, ${localClient.brand_colors.secondary}40, ${localClient.brand_colors.accent}40)`,
+                  }
+                : {
+                    background: 'linear-gradient(to right, rgba(139, 92, 246, 0.2), rgba(147, 51, 234, 0.2), rgba(219, 39, 119, 0.2))',
+                  }
+            }
+          />
+
+          {/* Conteúdo do header */}
+          <div className="px-6 pb-4">
+            <div className="flex items-end gap-4 -mt-10">
+              {/* Avatar */}
+              <div className="relative">
+                <AvatarUpload
+                  client={localClient}
+                  onUpdate={handleAvatarUpdate}
+                  size="lg"
+                />
+                <div className="absolute -bottom-1 -right-1">
+                  <StatusBadge status={localClient.status} size="sm" />
+                </div>
+              </div>
+
+              {/* Info principal */}
+              <div className="flex-1 pb-2">
+                <div className="flex items-center gap-3">
+                  <h2 className="text-xl font-bold text-white">{localClient.name}</h2>
+                  <span
+                    className="px-2 py-0.5 rounded-full text-xs"
+                    style={
+                      localClient.brand_colors
+                        ? {
+                            backgroundColor: `${localClient.brand_colors.primary}30`,
+                            color: localClient.brand_colors.primary,
+                          }
+                        : {
+                            backgroundColor: 'rgba(139, 92, 246, 0.2)',
+                            color: 'rgb(196, 181, 253)',
+                          }
+                    }
+                  >
+                    {segmentLabel}
                   </span>
+                </div>
+                <div className="flex items-center gap-4 mt-1 text-sm text-zinc-400">
+                  {localClient.city && (
+                    <span className="flex items-center gap-1">
+                      <Icon name="map-pin" size="xs" />
+                      {localClient.city}
+                    </span>
+                  )}
+                  {localClient.contact_name && (
+                    <span className="flex items-center gap-1">
+                      <Icon name="user" size="xs" />
+                      {localClient.contact_name}
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              {/* Ações */}
+              <div className="flex items-center gap-2 pb-2">
+                {onEdit && (
+                  <Button variant="secondary" size="sm" onClick={handleEdit}>
+                    <Icon name="edit-2" size="sm" className="mr-2" />
+                    Editar
+                  </Button>
                 )}
+                <Button variant="ghost" size="sm" onClick={onClose}>
+                  <Icon name="x" size="sm" />
+                </Button>
+              </div>
+            </div>
+
+            {/* Métricas rápidas */}
+            <div className="grid grid-cols-4 gap-3 mt-4">
+              <div className="p-3 rounded-xl bg-white/[0.03] border border-white/[0.05] text-center">
+                <p className="text-2xl font-bold text-white">{formatCurrency(localClient.monthly_value)}</p>
+                <p className="text-xs text-zinc-500">Valor Mensal</p>
+              </div>
+              <div className="p-3 rounded-xl bg-white/[0.03] border border-white/[0.05] text-center">
+                <p className="text-2xl font-bold text-white">Dia {localClient.due_day}</p>
+                <p className="text-xs text-zinc-500">Vencimento</p>
+              </div>
+              <div className="p-3 rounded-xl bg-white/[0.03] border border-white/[0.05] text-center">
+                <p className="text-2xl font-bold text-white">{reports.length}</p>
+                <p className="text-xs text-zinc-500">Relatórios</p>
+              </div>
+              <div className="p-3 rounded-xl bg-white/[0.03] border border-white/[0.05] text-center">
+                <p className="text-2xl font-bold text-emerald-400">{formatCurrency(totalReceived)}</p>
+                <p className="text-xs text-zinc-500">Total Recebido</p>
               </div>
             </div>
           </div>
-
-          {onEdit && (
-            <Button variant="secondary" size="sm" onClick={handleEdit}>
-              <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-              </svg>
-              Editar
-            </Button>
-          )}
         </div>
 
-        {/* Métricas rápidas */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          <div className="p-3 rounded-xl bg-white/[0.03] border border-white/[0.05]">
-            <p className="text-xs text-zinc-500 mb-1">Valor Mensal</p>
-            <p className="text-lg font-bold text-white">{formatCurrency(localClient.monthly_value)}</p>
-          </div>
-          <div className="p-3 rounded-xl bg-white/[0.03] border border-white/[0.05]">
-            <p className="text-xs text-zinc-500 mb-1">Dia Vencimento</p>
-            <p className="text-lg font-bold text-white">Dia {localClient.due_day}</p>
-          </div>
-          <div className="p-3 rounded-xl bg-white/[0.03] border border-white/[0.05]">
-            <p className="text-xs text-zinc-500 mb-1">Relatórios</p>
-            <p className="text-lg font-bold text-white">{reports.length}</p>
-          </div>
-          <div className="p-3 rounded-xl bg-white/[0.03] border border-white/[0.05]">
-            <p className="text-xs text-zinc-500 mb-1">Total Recebido</p>
-            <p className="text-lg font-bold text-emerald-400">{formatCurrency(totalReceived)}</p>
-          </div>
-        </div>
-
-        {/* Tabs */}
-        <div className="flex gap-1 p-1 rounded-lg bg-white/[0.03] overflow-x-auto">
-          <button
-            onClick={() => setActiveTab('info')}
-            className={`flex-1 min-w-fit px-3 py-2 rounded-md text-sm font-medium transition-colors whitespace-nowrap ${
-              activeTab === 'info'
-                ? 'bg-violet-500/20 text-violet-400'
-                : 'text-zinc-400 hover:text-white hover:bg-white/[0.05]'
-            }`}
-          >
-            Informações
-          </button>
-          {hasStrategyData && (
-            <button
-              onClick={() => setActiveTab('strategy')}
-              className={`flex-1 min-w-fit px-3 py-2 rounded-md text-sm font-medium transition-colors whitespace-nowrap ${
-                activeTab === 'strategy'
-                  ? 'bg-violet-500/20 text-violet-400'
-                  : 'text-zinc-400 hover:text-white hover:bg-white/[0.05]'
-              }`}
-            >
-              Estratégia
-            </button>
-          )}
-          <button
-            onClick={() => setActiveTab('credentials')}
-            className={`flex-1 min-w-fit px-3 py-2 rounded-md text-sm font-medium transition-colors whitespace-nowrap ${
-              activeTab === 'credentials'
-                ? 'bg-violet-500/20 text-violet-400'
-                : 'text-zinc-400 hover:text-white hover:bg-white/[0.05]'
-            }`}
-          >
-            Credenciais
-          </button>
-          <button
-            onClick={() => setActiveTab('reports')}
-            className={`flex-1 min-w-fit px-3 py-2 rounded-md text-sm font-medium transition-colors whitespace-nowrap ${
-              activeTab === 'reports'
-                ? 'bg-violet-500/20 text-violet-400'
-                : 'text-zinc-400 hover:text-white hover:bg-white/[0.05]'
-            }`}
-          >
-            Relatórios ({reports.length})
-          </button>
-          <button
-            onClick={() => setActiveTab('payments')}
-            className={`flex-1 min-w-fit px-3 py-2 rounded-md text-sm font-medium transition-colors whitespace-nowrap ${
-              activeTab === 'payments'
-                ? 'bg-violet-500/20 text-violet-400'
-                : 'text-zinc-400 hover:text-white hover:bg-white/[0.05]'
-            }`}
-          >
-            Pagamentos ({payments.length})
-          </button>
-        </div>
-
-        {/* Conteúdo das tabs */}
-        {loading ? (
-          <div className="flex items-center justify-center py-12">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-violet-500" />
-          </div>
-        ) : (
-          <div className="max-h-[400px] overflow-y-auto pr-1">
-            {/* Tab: Informações */}
-            {activeTab === 'info' && (
-              <div className="space-y-6">
-                {/* Contato */}
-                <Section
-                  title="Informações de Contato"
-                  icon={
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                    </svg>
-                  }
-                >
-                  <div className="grid grid-cols-2 gap-4">
-                    <InfoItem label="Nome do Contato" value={localClient.contact_name} />
-                    <InfoItem label="Email" value={localClient.contact_email} />
-                    <InfoItem label="Telefone/WhatsApp" value={localClient.contact_phone ? formatPhone(localClient.contact_phone) : null} />
-                    <InfoItem label="Cidade" value={localClient.city} />
-                    {localClient.address && (
-                      <div className="col-span-2">
-                        <InfoItem label="Endereço do Negócio" value={localClient.address} />
-                      </div>
-                    )}
-                  </div>
-                </Section>
-
-                {/* Financeiro */}
-                <Section
-                  title="Informações Financeiras"
-                  icon={
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                  }
-                >
-                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-                    <InfoItem label="Valor Mensal" value={formatCurrency(localClient.monthly_value)} />
-                    <InfoItem label="Dia de Vencimento" value={`Dia ${localClient.due_day}`} />
-                    {localClient.average_ticket && (
-                      <InfoItem label="Ticket Médio" value={formatCurrency(localClient.average_ticket)} />
-                    )}
-                  </div>
-                </Section>
-
-                {/* Redes Sociais */}
-                {(localClient.instagram_url || localClient.facebook_page_id) && (
-                  <Section
-                    title="Redes Sociais"
-                    icon={
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17 8h2a2 2 0 012 2v6a2 2 0 01-2 2h-2v4l-4-4H9a1.994 1.994 0 01-1.414-.586m0 0L11 14h4a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2v4l.586-.586z" />
-                      </svg>
-                    }
-                  >
-                    <div className="flex flex-wrap gap-2">
-                      {localClient.instagram_url && (
-                        <a
-                          href={localClient.instagram_url.startsWith('http') ? localClient.instagram_url : `https://instagram.com/${localClient.instagram_url.replace('@', '')}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="flex items-center gap-2 px-3 py-2 rounded-lg bg-gradient-to-r from-purple-500/10 to-pink-500/10 hover:from-purple-500/20 hover:to-pink-500/20 text-pink-400 transition-colors text-sm"
-                        >
-                          <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-                            <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/>
-                          </svg>
-                          Instagram
-                        </a>
-                      )}
-                      {localClient.facebook_page_id && (
-                        <a
-                          href={`https://facebook.com/${localClient.facebook_page_id}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="flex items-center gap-2 px-3 py-2 rounded-lg bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 transition-colors text-sm"
-                        >
-                          <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-                            <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
-                          </svg>
-                          Facebook
-                        </a>
-                      )}
-                    </div>
-                  </Section>
+        {/* Navegação por abas */}
+        <div className="px-6 border-b border-white/[0.08]">
+          <div className="flex gap-1 -mb-px overflow-x-auto">
+            {visibleTabs.map((tab) => (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={`flex items-center gap-2 px-4 py-3 text-sm font-medium transition-colors whitespace-nowrap border-b-2 ${
+                  activeTab === tab.id
+                    ? 'border-violet-500 text-violet-400'
+                    : 'border-transparent text-zinc-400 hover:text-white hover:border-white/20'
+                }`}
+              >
+                <Icon name={tab.icon} size="sm" />
+                {tab.label}
+                {tab.id === 'reports' && reports.length > 0 && (
+                  <span className="px-1.5 py-0.5 rounded-full text-xs bg-zinc-800 text-zinc-400">
+                    {reports.length}
+                  </span>
                 )}
+                {tab.id === 'payments' && payments.length > 0 && (
+                  <span className="px-1.5 py-0.5 rounded-full text-xs bg-zinc-800 text-zinc-400">
+                    {payments.length}
+                  </span>
+                )}
+              </button>
+            ))}
+          </div>
+        </div>
 
-                {/* Links e Recursos */}
-                <Section
-                  title="Links e Recursos"
-                  icon={
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
-                    </svg>
-                  }
-                >
-                  <div className="flex flex-wrap gap-2">
-                    {localClient.ads_account_url && (
-                      <a
-                        href={localClient.ads_account_url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex items-center gap-2 px-3 py-2 rounded-lg bg-white/[0.03] hover:bg-white/[0.08] text-zinc-400 hover:text-white transition-colors text-sm"
-                      >
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                        </svg>
-                        Conta de Anúncios
-                      </a>
-                    )}
-                    {localClient.website_url && (
-                      <a
-                        href={localClient.website_url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex items-center gap-2 px-3 py-2 rounded-lg bg-white/[0.03] hover:bg-white/[0.08] text-zinc-400 hover:text-white transition-colors text-sm"
-                      >
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />
-                        </svg>
-                        Website
-                      </a>
-                    )}
-                    {localClient.drive_url && (
-                      <a
-                        href={localClient.drive_url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex items-center gap-2 px-3 py-2 rounded-lg bg-white/[0.03] hover:bg-white/[0.08] text-zinc-400 hover:text-white transition-colors text-sm"
-                      >
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
-                        </svg>
-                        Google Drive
-                      </a>
-                    )}
-                    {localClient.menu_url && (
-                      <a
-                        href={localClient.menu_url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex items-center gap-2 px-3 py-2 rounded-lg bg-white/[0.03] hover:bg-white/[0.08] text-zinc-400 hover:text-white transition-colors text-sm"
-                      >
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
-                        </svg>
-                        Cardápio/Menu
-                      </a>
-                    )}
-                    {!localClient.ads_account_url && !localClient.website_url && !localClient.drive_url && !localClient.menu_url && (
-                      <span className="text-zinc-500 text-sm">Nenhum link cadastrado</span>
+        {/* Conteúdo das abas */}
+        <div className="flex-1 overflow-y-auto p-6">
+          {loading ? (
+            <div className="flex items-center justify-center py-12">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-violet-500" />
+            </div>
+          ) : (
+            <>
+              {/* Tab: Visão Geral */}
+              {activeTab === 'overview' && (
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  {/* Coluna 1 */}
+                  <div className="space-y-6">
+                    {/* Contato */}
+                    <GlassCard className="p-5">
+                      <Section title="Informações de Contato" icon="user">
+                        <div className="grid grid-cols-2 gap-4">
+                          <InfoItem label="Nome do Contato" value={localClient.contact_name} />
+                          <InfoItem label="Email" value={localClient.contact_email} />
+                          <InfoItem
+                            label="Telefone/WhatsApp"
+                            value={localClient.contact_phone ? formatPhone(localClient.contact_phone) : null}
+                          />
+                          <InfoItem label="Cidade" value={localClient.city} />
+                        </div>
+                        {localClient.address && (
+                          <div className="mt-4">
+                            <InfoItem label="Endereço do Negócio" value={localClient.address} />
+                          </div>
+                        )}
+                      </Section>
+                    </GlassCard>
+
+                    {/* Financeiro */}
+                    <GlassCard className="p-5">
+                      <Section title="Informações Financeiras" icon="dollar-sign">
+                        <div className="grid grid-cols-2 gap-4">
+                          <InfoItem label="Valor Mensal" value={formatCurrency(localClient.monthly_value)} />
+                          <InfoItem label="Dia de Vencimento" value={`Dia ${localClient.due_day}`} />
+                          {localClient.average_ticket && (
+                            <InfoItem label="Ticket Médio" value={formatCurrency(localClient.average_ticket)} />
+                          )}
+                          {localClient.profit_margin && (
+                            <InfoItem label="Margem de Lucro" value={`${localClient.profit_margin}%`} />
+                          )}
+                          {localClient.monthly_ad_budget && (
+                            <InfoItem label="Orçamento de Anúncios" value={formatCurrency(localClient.monthly_ad_budget)} />
+                          )}
+                        </div>
+                      </Section>
+                    </GlassCard>
+
+                    {/* Gestão */}
+                    <GlassCard className="p-5">
+                      <Section title="Gestão do Cliente" icon="clipboard">
+                        <div className="grid grid-cols-2 gap-4">
+                          {localClient.meeting_frequency && (
+                            <InfoItem
+                              label="Frequência de Reuniões"
+                              value={MEETING_FREQUENCY_LABELS[localClient.meeting_frequency] || localClient.meeting_frequency}
+                            />
+                          )}
+                          <div>
+                            <p className="text-xs text-zinc-500 mb-1">Autorização de Imagem</p>
+                            <span className={`inline-flex items-center gap-1 text-sm ${localClient.image_authorization ? 'text-emerald-400' : 'text-zinc-400'}`}>
+                              <Icon
+                                name={localClient.image_authorization ? 'check-circle' : 'x-circle'}
+                                size="sm"
+                              />
+                              {localClient.image_authorization ? 'Autorizado' : 'Não autorizado'}
+                            </span>
+                          </div>
+                          <div>
+                            <p className="text-xs text-zinc-500 mb-1">Status</p>
+                            <StatusBadge status={localClient.status} label={statusConfig.label} />
+                          </div>
+                        </div>
+                      </Section>
+                    </GlassCard>
+                  </div>
+
+                  {/* Coluna 2 */}
+                  <div className="space-y-6">
+                    {/* Redes Sociais */}
+                    <GlassCard className="p-5">
+                      <Section title="Redes Sociais" icon="share-2">
+                        <div className="flex flex-wrap gap-2">
+                          {localClient.instagram_url && (
+                            <a
+                              href={localClient.instagram_url.startsWith('http')
+                                ? localClient.instagram_url
+                                : `https://instagram.com/${localClient.instagram_url.replace('@', '')}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-purple-500/10 to-pink-500/10 hover:from-purple-500/20 hover:to-pink-500/20 text-pink-400 transition-colors text-sm"
+                            >
+                              <Icon name="instagram" size="sm" />
+                              Instagram
+                            </a>
+                          )}
+                          {localClient.facebook_page_id && (
+                            <a
+                              href={`https://facebook.com/${localClient.facebook_page_id}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 transition-colors text-sm"
+                            >
+                              <Icon name="facebook" size="sm" />
+                              Facebook
+                            </a>
+                          )}
+                          {!localClient.instagram_url && !localClient.facebook_page_id && (
+                            <span className="text-zinc-500 text-sm">Nenhuma rede social cadastrada</span>
+                          )}
+                        </div>
+                      </Section>
+                    </GlassCard>
+
+                    {/* Links e Recursos */}
+                    <GlassCard className="p-5">
+                      <Section title="Links e Recursos" icon="link">
+                        <div className="space-y-2">
+                          {localClient.ads_account_url && (
+                            <a
+                              href={localClient.ads_account_url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="flex items-center gap-3 p-3 rounded-xl bg-white/[0.02] hover:bg-white/[0.05] text-zinc-300 hover:text-white transition-colors"
+                            >
+                              <div className="w-9 h-9 rounded-lg bg-orange-500/10 flex items-center justify-center">
+                                <Icon name="bar-chart" size="sm" className="text-orange-400" />
+                              </div>
+                              <div>
+                                <p className="text-sm font-medium">Conta de Anúncios</p>
+                                <p className="text-xs text-zinc-500 truncate max-w-[200px]">{localClient.ads_account_url}</p>
+                              </div>
+                              <Icon name="external-link" size="sm" className="ml-auto text-zinc-500" />
+                            </a>
+                          )}
+                          {localClient.website_url && (
+                            <a
+                              href={localClient.website_url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="flex items-center gap-3 p-3 rounded-xl bg-white/[0.02] hover:bg-white/[0.05] text-zinc-300 hover:text-white transition-colors"
+                            >
+                              <div className="w-9 h-9 rounded-lg bg-blue-500/10 flex items-center justify-center">
+                                <Icon name="globe" size="sm" className="text-blue-400" />
+                              </div>
+                              <div>
+                                <p className="text-sm font-medium">Website</p>
+                                <p className="text-xs text-zinc-500 truncate max-w-[200px]">{localClient.website_url}</p>
+                              </div>
+                              <Icon name="external-link" size="sm" className="ml-auto text-zinc-500" />
+                            </a>
+                          )}
+                          {localClient.drive_url && (
+                            <a
+                              href={localClient.drive_url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="flex items-center gap-3 p-3 rounded-xl bg-white/[0.02] hover:bg-white/[0.05] text-zinc-300 hover:text-white transition-colors"
+                            >
+                              <div className="w-9 h-9 rounded-lg bg-emerald-500/10 flex items-center justify-center">
+                                <Icon name="folder" size="sm" className="text-emerald-400" />
+                              </div>
+                              <div>
+                                <p className="text-sm font-medium">Google Drive</p>
+                                <p className="text-xs text-zinc-500">Pasta de arquivos</p>
+                              </div>
+                              <Icon name="external-link" size="sm" className="ml-auto text-zinc-500" />
+                            </a>
+                          )}
+                          {localClient.menu_url && (
+                            <a
+                              href={localClient.menu_url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="flex items-center gap-3 p-3 rounded-xl bg-white/[0.02] hover:bg-white/[0.05] text-zinc-300 hover:text-white transition-colors"
+                            >
+                              <div className="w-9 h-9 rounded-lg bg-amber-500/10 flex items-center justify-center">
+                                <Icon name="file-text" size="sm" className="text-amber-400" />
+                              </div>
+                              <div>
+                                <p className="text-sm font-medium">Cardápio/Menu</p>
+                                <p className="text-xs text-zinc-500">Catálogo de produtos</p>
+                              </div>
+                              <Icon name="external-link" size="sm" className="ml-auto text-zinc-500" />
+                            </a>
+                          )}
+                          {!localClient.ads_account_url && !localClient.website_url && !localClient.drive_url && !localClient.menu_url && (
+                            <span className="text-zinc-500 text-sm">Nenhum link cadastrado</span>
+                          )}
+                        </div>
+                      </Section>
+                    </GlassCard>
+
+                    {/* Observações */}
+                    {localClient.notes && (
+                      <GlassCard className="p-5">
+                        <Section title="Observações" icon="file-text">
+                          <p className="text-sm text-zinc-300 whitespace-pre-wrap">{localClient.notes}</p>
+                        </Section>
+                      </GlassCard>
                     )}
                   </div>
-                  {localClient.assets_links && (
-                    <div className="mt-3">
-                      <InfoItem label="Links de Assets/Criativos" value={localClient.assets_links} />
+                </div>
+              )}
+
+
+              {/* Tab: Briefing */}
+              {activeTab === 'briefing' && hasBriefingData && briefingData && (
+                <div className="space-y-6">
+                  {/* Header com info do template */}
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-xl bg-violet-500/20 flex items-center justify-center">
+                        <Icon name="clipboard-list" size="md" className="text-violet-400" />
+                      </div>
+                      <div>
+                        <h3 className="text-lg font-semibold text-white">{briefingData.template_name}</h3>
+                        <p className="text-sm text-zinc-400">
+                          Respondido em {new Date(briefingData.answered_at).toLocaleDateString('pt-BR', {
+                            day: '2-digit',
+                            month: 'long',
+                            year: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit'
+                          })}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-2xl font-bold text-white">{briefingData.answers?.length || 0}</p>
+                      <p className="text-xs text-zinc-500">perguntas respondidas</p>
+                    </div>
+                  </div>
+
+                  {/* Grid de respostas */}
+                  {briefingData.answers && briefingData.answers.length > 0 ? (
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                      {briefingData.answers.map((answer, index) => (
+                        <BriefingItem key={answer.question_id || index} answer={answer} />
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="flex flex-col items-center justify-center py-12 text-center">
+                      <div className="w-16 h-16 rounded-2xl bg-zinc-800/50 flex items-center justify-center mb-4">
+                        <Icon name="clipboard-list" size="lg" className="text-zinc-600" />
+                      </div>
+                      <p className="text-zinc-400 mb-1">Nenhuma resposta encontrada</p>
+                      <p className="text-sm text-zinc-600">O briefing foi salvo mas não contém respostas</p>
                     </div>
                   )}
-                </Section>
+                </div>
+              )}
 
-                {/* Gestão */}
-                <Section
-                  title="Gestão do Cliente"
-                  icon={
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-                    </svg>
-                  }
-                >
-                  <div className="grid grid-cols-2 gap-4">
-                    {localClient.meeting_frequency && (
-                      <InfoItem label="Frequência de Reuniões" value={MEETING_FREQUENCY_LABELS[localClient.meeting_frequency] || localClient.meeting_frequency} />
-                    )}
-                    <div>
-                      <p className="text-xs text-zinc-500 mb-1">Autorização de Imagem</p>
-                      <span className={`inline-flex items-center gap-1 text-sm ${localClient.image_authorization ? 'text-emerald-400' : 'text-zinc-400'}`}>
-                        {localClient.image_authorization ? (
-                          <>
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                            </svg>
-                            Autorizado
-                          </>
-                        ) : (
-                          <>
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                            </svg>
-                            Não autorizado
-                          </>
-                        )}
-                      </span>
-                    </div>
-                  </div>
-                </Section>
+              {/* Tab: Inteligência */}
+              {activeTab === 'intelligence' && (
+                <div className="space-y-6">
+                  {intelligenceGenerating ? (
+                    <IntelligenceLoadingSkeleton
+                      message={`Analisando dados de ${localClient.name}...`}
+                    />
+                  ) : (
+                    <>
+                      {/* Card principal de inteligência */}
+                      <IntelligenceCard
+                        intelligence={intelligence}
+                        loading={intelligenceLoading}
+                        generating={intelligenceGenerating}
+                        isStale={intelligenceIsStale}
+                        onGenerate={intelligence ? regenerateIntelligence : generateIntelligence}
+                      />
 
-                {/* Observações */}
-                {localClient.notes && (
-                  <Section
-                    title="Observações"
-                    icon={
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                      </svg>
-                    }
-                  >
-                    <p className="text-sm text-zinc-300 whitespace-pre-wrap">{localClient.notes}</p>
-                  </Section>
-                )}
-              </div>
-            )}
+                      {/* Conteúdo da inteligência */}
+                      {intelligence && (
+                        <>
+                          {/* Resumo Executivo */}
+                          <ExecutiveSummaryCard
+                            summary={intelligence.executive_summary}
+                            lastUpdated={intelligence.last_generated_at}
+                          />
 
-            {/* Tab: Estratégia */}
-            {activeTab === 'strategy' && (
-              <div className="space-y-6">
-                {/* Metas */}
-                {(localClient.goals_short_term || localClient.goals_long_term) && (
-                  <Section
-                    title="Metas e Objetivos"
-                    icon={
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
-                      </svg>
-                    }
-                  >
-                    <div className="space-y-4">
-                      {localClient.goals_short_term && (
-                        <div>
-                          <p className="text-xs text-zinc-500 mb-1">Metas de Curto Prazo</p>
-                          <p className="text-sm text-white whitespace-pre-wrap">{localClient.goals_short_term}</p>
-                        </div>
+                          {/* Sugestões de Conteúdo */}
+                          <ContentSuggestionsGrid
+                            suggestions={intelligence.content_suggestions || []}
+                          />
+
+                          {/* Ofertas Sazonais */}
+                          <SeasonalOffersCarousel
+                            offers={intelligence.seasonal_offers || []}
+                          />
+                        </>
                       )}
-                      {localClient.goals_long_term && (
-                        <div>
-                          <p className="text-xs text-zinc-500 mb-1">Metas de Longo Prazo</p>
-                          <p className="text-sm text-white whitespace-pre-wrap">{localClient.goals_long_term}</p>
-                        </div>
-                      )}
-                    </div>
-                  </Section>
-                )}
+                    </>
+                  )}
+                </div>
+              )}
 
-                {/* Cliente Ideal e Diferenciais */}
-                {(localClient.ideal_customer || localClient.differentials) && (
-                  <Section
-                    title="Público e Diferenciais"
-                    icon={
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-                      </svg>
-                    }
-                  >
-                    <div className="space-y-4">
-                      {localClient.ideal_customer && (
-                        <div>
-                          <p className="text-xs text-zinc-500 mb-1">Cliente Ideal</p>
-                          <p className="text-sm text-white whitespace-pre-wrap">{localClient.ideal_customer}</p>
-                        </div>
-                      )}
-                      {localClient.differentials && (
-                        <div>
-                          <p className="text-xs text-zinc-500 mb-1">Diferenciais</p>
-                          <p className="text-sm text-white whitespace-pre-wrap">{localClient.differentials}</p>
-                        </div>
-                      )}
-                    </div>
-                  </Section>
-                )}
+              {/* Tab: Credenciais */}
+              {activeTab === 'credentials' && (
+                <CredentialsList clientId={localClient.id} />
+              )}
 
-                {/* Operacional */}
-                {localClient.peak_hours && (
-                  <Section
-                    title="Informações Operacionais"
-                    icon={
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                      </svg>
-                    }
-                  >
-                    <InfoItem label="Horários de Pico" value={localClient.peak_hours} />
-                  </Section>
-                )}
-
-                {/* Solicitação de Produção de Conteúdo */}
-                {localClient.content_request && (
-                  <Section
-                    title="Solicitação de Produção de Conteúdo"
-                    icon={
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                      </svg>
-                    }
-                  >
-                    <p className="text-sm text-zinc-300 whitespace-pre-wrap">{localClient.content_request}</p>
-                  </Section>
-                )}
-              </div>
-            )}
-
-            {/* Tab: Credenciais */}
-            {activeTab === 'credentials' && (
-              <CredentialsList clientId={localClient.id} />
-            )}
-
-            {/* Tab: Relatórios */}
-            {activeTab === 'reports' && (
-              <div className="space-y-3">
-                {reports.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-8 text-center">
-                    <svg className="w-12 h-12 text-zinc-600 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                    </svg>
-                    <p className="text-zinc-500">Nenhum relatório encontrado</p>
-                  </div>
-                ) : (
-                  reports.map((report) => (
-                    <div
-                      key={report.id}
-                      className="flex items-center justify-between p-3 rounded-lg bg-white/[0.02] hover:bg-white/[0.05] transition-colors"
-                    >
-                      <div>
-                        <p className="text-sm text-white">
-                          {new Date(report.period_start).toLocaleDateString('pt-BR')} -{' '}
-                          {new Date(report.period_end).toLocaleDateString('pt-BR')}
-                        </p>
-                        <p className="text-xs text-zinc-500">{report.source || 'Manual'}</p>
+              {/* Tab: Relatórios */}
+              {activeTab === 'reports' && (
+                <div className="space-y-3">
+                  {reports.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center py-16 text-center">
+                      <div className="w-16 h-16 rounded-2xl bg-zinc-800/50 flex items-center justify-center mb-4">
+                        <Icon name="bar-chart-2" size="lg" className="text-zinc-600" />
                       </div>
-                      <div className="text-right">
-                        <p className="text-sm font-medium text-white">
-                          {formatCurrency(Number(report.total_spend))}
-                        </p>
-                        <p className="text-xs text-zinc-500">{report.total_conversions} conversões</p>
-                      </div>
+                      <p className="text-zinc-400 mb-1">Nenhum relatório encontrado</p>
+                      <p className="text-sm text-zinc-600">Os relatórios importados aparecerão aqui</p>
                     </div>
-                  ))
-                )}
-              </div>
-            )}
-
-            {/* Tab: Pagamentos */}
-            {activeTab === 'payments' && (
-              <div className="space-y-3">
-                {payments.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-8 text-center">
-                    <svg className="w-12 h-12 text-zinc-600 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
-                    </svg>
-                    <p className="text-zinc-500">Nenhum pagamento encontrado</p>
-                  </div>
-                ) : (
-                  payments.map((payment) => (
-                    <div
-                      key={payment.id}
-                      className="flex items-center justify-between p-3 rounded-lg bg-white/[0.02] hover:bg-white/[0.05] transition-colors"
-                    >
-                      <div>
-                        <p className="text-sm text-white">{payment.description}</p>
-                        <p className="text-xs text-zinc-500">
-                          Vencimento: {new Date(payment.due_date).toLocaleDateString('pt-BR')}
-                        </p>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-sm font-medium text-white">
-                          {formatCurrency(Number(payment.amount))}
-                        </p>
-                        <span
-                          className={`text-xs px-2 py-0.5 rounded-full ${
-                            payment.status === 'paid'
-                              ? 'bg-emerald-500/10 text-emerald-400'
-                              : payment.status === 'overdue'
-                              ? 'bg-red-500/10 text-red-400'
-                              : 'bg-amber-500/10 text-amber-400'
-                          }`}
+                  ) : (
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+                      {reports.map((report) => (
+                        <GlassCard
+                          key={report.id}
+                          className="p-4 hover:border-violet-500/30 transition-colors"
                         >
-                          {payment.status === 'paid'
-                            ? 'Pago'
-                            : payment.status === 'overdue'
-                            ? 'Atrasado'
-                            : 'Pendente'}
-                        </span>
-                      </div>
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <p className="text-sm font-medium text-white">
+                                {new Date(report.period_start).toLocaleDateString('pt-BR')} -{' '}
+                                {new Date(report.period_end).toLocaleDateString('pt-BR')}
+                              </p>
+                              <p className="text-xs text-zinc-500 mt-1">{report.source || 'Manual'}</p>
+                            </div>
+                            <div className="text-right">
+                              <p className="text-lg font-bold text-white">
+                                {formatCurrency(Number(report.total_spend))}
+                              </p>
+                              <p className="text-xs text-zinc-500">{report.total_conversions} conversões</p>
+                            </div>
+                          </div>
+                        </GlassCard>
+                      ))}
                     </div>
-                  ))
-                )}
-              </div>
-            )}
-          </div>
-        )}
+                  )}
+                </div>
+              )}
+
+              {/* Tab: Pagamentos */}
+              {activeTab === 'payments' && (
+                <div className="space-y-3">
+                  {payments.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center py-16 text-center">
+                      <div className="w-16 h-16 rounded-2xl bg-zinc-800/50 flex items-center justify-center mb-4">
+                        <Icon name="credit-card" size="lg" className="text-zinc-600" />
+                      </div>
+                      <p className="text-zinc-400 mb-1">Nenhum pagamento encontrado</p>
+                      <p className="text-sm text-zinc-600">Os pagamentos gerados aparecerão aqui</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      {payments.map((payment) => (
+                        <GlassCard
+                          key={payment.id}
+                          className="p-4 hover:border-violet-500/30 transition-colors"
+                        >
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                              <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
+                                payment.status === 'paid'
+                                  ? 'bg-emerald-500/20'
+                                  : payment.status === 'overdue'
+                                  ? 'bg-red-500/20'
+                                  : 'bg-amber-500/20'
+                              }`}>
+                                <Icon
+                                  name={payment.status === 'paid' ? 'check' : payment.status === 'overdue' ? 'alert-circle' : 'clock'}
+                                  size="sm"
+                                  className={
+                                    payment.status === 'paid'
+                                      ? 'text-emerald-400'
+                                      : payment.status === 'overdue'
+                                      ? 'text-red-400'
+                                      : 'text-amber-400'
+                                  }
+                                />
+                              </div>
+                              <div>
+                                <p className="text-sm font-medium text-white">{payment.description}</p>
+                                <p className="text-xs text-zinc-500">
+                                  Vencimento: {new Date(payment.due_date).toLocaleDateString('pt-BR')}
+                                </p>
+                              </div>
+                            </div>
+                            <div className="text-right">
+                              <p className="text-lg font-bold text-white">
+                                {formatCurrency(Number(payment.amount))}
+                              </p>
+                              <StatusBadge
+                                status={payment.status === 'paid' ? 'success' : payment.status === 'overdue' ? 'danger' : 'warning'}
+                                size="sm"
+                                label={payment.status === 'paid' ? 'Pago' : payment.status === 'overdue' ? 'Atrasado' : 'Pendente'}
+                              />
+                            </div>
+                          </div>
+                        </GlassCard>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+            </>
+          )}
+        </div>
       </div>
     </Modal>
   );

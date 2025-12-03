@@ -20,7 +20,7 @@ import { createPortal } from 'react-dom';
 
 import { cn } from '@/lib/utils';
 
-type ModalSize = 'sm' | 'md' | 'lg' | 'xl' | 'full';
+type ModalSize = 'sm' | 'md' | 'lg' | 'xl' | '2xl' | '3xl' | 'full' | 'profile';
 
 interface ModalProps {
   /** Se o modal está aberto */
@@ -45,6 +45,8 @@ interface ModalProps {
   footer?: React.ReactNode;
   /** Classes adicionais */
   className?: string;
+  /** Se remove o padding do body (para layouts customizados) */
+  noPadding?: boolean;
 }
 
 const sizeStyles: Record<ModalSize, string> = {
@@ -52,7 +54,10 @@ const sizeStyles: Record<ModalSize, string> = {
   md: 'max-w-md',
   lg: 'max-w-lg',
   xl: 'max-w-xl',
+  '2xl': 'max-w-2xl',
+  '3xl': 'max-w-3xl',
   full: 'max-w-4xl',
+  profile: 'max-w-5xl h-[90vh]',
 };
 
 /**
@@ -71,6 +76,7 @@ function Modal({
   closeOnEsc = true,
   footer,
   className,
+  noPadding = false,
 }: ModalProps) {
   const modalRef = useRef<HTMLDivElement>(null);
   const previousActiveElement = useRef<HTMLElement | null>(null);
@@ -142,6 +148,7 @@ function Modal({
           'border border-white/[0.08] rounded-2xl',
           'shadow-2xl shadow-black/50',
           'animate-in zoom-in-95 fade-in duration-200',
+          size === 'profile' && 'flex flex-col',
           sizeStyles[size],
           className
         )}
@@ -199,7 +206,15 @@ function Modal({
         )}
 
         {/* Body */}
-        <div className="p-6">{children}</div>
+        <div
+          className={cn(
+            'overflow-y-auto',
+            noPadding ? '' : 'p-6',
+            size === 'profile' ? 'flex-1' : 'max-h-[calc(85vh-8rem)]'
+          )}
+        >
+          {children}
+        </div>
 
         {/* Footer */}
         {footer && (

@@ -1,6 +1,6 @@
 /**
  * @file StatusBadge.tsx
- * @description Componente de badge para exibição de status
+ * @description Componente de badge para exibição de status com visual glassmorphism
  * @module components/ui
  *
  * @example
@@ -28,41 +28,53 @@ interface StatusBadgeProps {
   className?: string;
 }
 
-const statusStyles: Record<BadgeStatus, { bg: string; text: string; dot: string }> = {
+const statusStyles: Record<BadgeStatus, {
+  bgColor: string;
+  textColor: string;
+  borderColor: string;
+  dotColor: string;
+}> = {
   active: {
-    bg: 'bg-emerald-500/10',
-    text: 'text-emerald-400',
-    dot: 'bg-emerald-400',
+    bgColor: 'bg-emerald-500/15',
+    textColor: 'text-emerald-300',
+    borderColor: 'border-emerald-500/40',
+    dotColor: 'bg-emerald-400',
   },
   success: {
-    bg: 'bg-emerald-500/10',
-    text: 'text-emerald-400',
-    dot: 'bg-emerald-400',
+    bgColor: 'bg-emerald-500/15',
+    textColor: 'text-emerald-300',
+    borderColor: 'border-emerald-500/40',
+    dotColor: 'bg-emerald-400',
   },
   paused: {
-    bg: 'bg-amber-500/10',
-    text: 'text-amber-400',
-    dot: 'bg-amber-400',
+    bgColor: 'bg-amber-500/15',
+    textColor: 'text-amber-300',
+    borderColor: 'border-amber-500/40',
+    dotColor: 'bg-amber-400',
   },
   warning: {
-    bg: 'bg-amber-500/10',
-    text: 'text-amber-400',
-    dot: 'bg-amber-400',
+    bgColor: 'bg-amber-500/15',
+    textColor: 'text-amber-300',
+    borderColor: 'border-amber-500/40',
+    dotColor: 'bg-amber-400',
   },
   inactive: {
-    bg: 'bg-zinc-500/10',
-    text: 'text-zinc-400',
-    dot: 'bg-zinc-400',
+    bgColor: 'bg-zinc-500/15',
+    textColor: 'text-zinc-300',
+    borderColor: 'border-zinc-500/40',
+    dotColor: 'bg-zinc-400',
   },
   danger: {
-    bg: 'bg-red-500/10',
-    text: 'text-red-400',
-    dot: 'bg-red-400',
+    bgColor: 'bg-red-500/15',
+    textColor: 'text-red-300',
+    borderColor: 'border-red-500/40',
+    dotColor: 'bg-red-400',
   },
   info: {
-    bg: 'bg-blue-500/10',
-    text: 'text-blue-400',
-    dot: 'bg-blue-400',
+    bgColor: 'bg-blue-500/15',
+    textColor: 'text-blue-300',
+    borderColor: 'border-blue-500/40',
+    dotColor: 'bg-blue-400',
   },
 };
 
@@ -78,22 +90,22 @@ const statusLabels: Record<BadgeStatus, string> = {
 
 const sizeStyles: Record<BadgeSize, { badge: string; dot: string }> = {
   sm: {
-    badge: 'px-2 py-0.5 text-xs gap-1',
+    badge: 'px-2.5 py-1 text-[11px] gap-1.5',
     dot: 'w-1.5 h-1.5',
   },
   md: {
-    badge: 'px-2.5 py-1 text-xs gap-1.5',
+    badge: 'px-3 py-1.5 text-xs gap-2',
     dot: 'w-2 h-2',
   },
   lg: {
-    badge: 'px-3 py-1.5 text-sm gap-2',
+    badge: 'px-4 py-2 text-sm gap-2.5',
     dot: 'w-2.5 h-2.5',
   },
 };
 
 /**
  * Badge para exibição de status com cores semânticas
- * e indicador visual opcional
+ * Design glassmorphism com indicador visual opcional
  */
 function StatusBadge({
   status,
@@ -109,16 +121,33 @@ function StatusBadge({
   return (
     <span
       className={cn(
-        'inline-flex items-center font-medium rounded-full',
-        styles.bg,
-        styles.text,
+        // Base styles
+        'inline-flex items-center font-semibold rounded-lg',
+        // Glass effect
+        'backdrop-blur-sm border',
+        // Shadow for depth
+        'shadow-sm',
+        // Transition
+        'transition-all duration-200',
+        // Config colors
+        styles.bgColor,
+        styles.textColor,
+        styles.borderColor,
+        // Size
         sizeStyle.badge,
         className
       )}
     >
       {showDot && (
         <span
-          className={cn('rounded-full', styles.dot, sizeStyle.dot)}
+          className={cn(
+            'rounded-full',
+            styles.dotColor,
+            sizeStyle.dot
+          )}
+          style={{
+            boxShadow: `0 0 6px currentColor`,
+          }}
           aria-hidden="true"
         />
       )}

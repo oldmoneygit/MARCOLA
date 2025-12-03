@@ -52,12 +52,14 @@ interface FormData {
 
 const typeOptions = Object.entries(CONTENT_TYPE_CONFIG).map(([value, config]) => ({
   value,
-  label: `${config.icon} ${config.label}`,
+  label: config.label,
+  icon: config.icon,
 }));
 
 const platformOptions = Object.entries(PLATFORM_CONFIG).map(([value, config]) => ({
   value,
-  label: `${config.icon} ${config.label}`,
+  label: config.label,
+  icon: config.icon,
 }));
 
 function getInitialFormData(

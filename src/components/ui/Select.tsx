@@ -89,20 +89,20 @@ const Select = forwardRef<HTMLSelectElement, SelectProps>(
             disabled={disabled}
             className={cn(
               // Base styles
-              'w-full rounded-xl border bg-white/[0.03] backdrop-blur-sm',
+              'w-full rounded-xl border bg-zinc-900/80 backdrop-blur-sm',
               'text-white',
               'transition-all duration-200',
-              'focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-[#0a0a0f]',
+              'focus:outline-none focus:ring-1 focus:ring-violet-500/30',
               // Padding
               'py-2.5 pl-4 pr-10',
               // Appearance
               'appearance-none cursor-pointer',
               // Border & focus states
               hasError
-                ? 'border-red-500/50 focus:ring-red-500/50 focus:border-red-500'
-                : 'border-white/[0.08] focus:ring-violet-500/50 focus:border-violet-500/50',
+                ? 'border-red-500/50 focus:ring-red-500/30 focus:border-red-500'
+                : 'border-zinc-700/50 focus:ring-violet-500/30 focus:border-violet-500/50',
               // Hover
-              !disabled && 'hover:border-white/[0.15] hover:bg-white/[0.05]',
+              !disabled && 'hover:border-zinc-600/70 hover:bg-zinc-900/90',
               // Disabled
               disabled && 'opacity-50 cursor-not-allowed',
               className
@@ -112,7 +112,7 @@ const Select = forwardRef<HTMLSelectElement, SelectProps>(
             {...props}
           >
             {placeholder && (
-              <option value="" disabled className="bg-[#0a0a0f] text-zinc-500">
+              <option value="" disabled className="bg-zinc-900 text-zinc-400">
                 {placeholder}
               </option>
             )}
@@ -121,7 +121,7 @@ const Select = forwardRef<HTMLSelectElement, SelectProps>(
                 key={option.value}
                 value={option.value}
                 disabled={option.disabled}
-                className="bg-[#0a0a0f] text-white"
+                className="bg-zinc-900 text-white"
               >
                 {option.label}
               </option>

@@ -94,12 +94,12 @@ function MetricCard({
 
   return (
     <GlassCard hover className={cn('relative overflow-hidden', className)}>
-      {/* Background gradient decorativo */}
+      {/* Background gradient decorativo sutil */}
       <div
         className={cn(
-          'absolute top-0 right-0 w-32 h-32',
-          'bg-gradient-to-bl from-violet-500/10 to-transparent',
-          'rounded-full blur-2xl -translate-y-1/2 translate-x-1/2'
+          'absolute top-0 right-0 w-40 h-40',
+          'bg-gradient-to-bl from-white/[0.02] to-transparent',
+          'rounded-full blur-3xl -translate-y-1/2 translate-x-1/2'
         )}
         aria-hidden="true"
       />

@@ -233,17 +233,17 @@ export function TasksPageContent() {
 
         {/* Filtro de prioridade */}
         <div className="flex items-center gap-2 ml-auto">
-          <span className="text-xs text-zinc-500">Prioridade:</span>
+          <span className="text-xs text-zinc-400">Prioridade:</span>
           <select
             value={priorityFilter}
             onChange={e => setPriorityFilter(e.target.value as FilterPriority)}
-            className="px-3 py-2 text-sm rounded-lg bg-white/[0.03] border border-white/[0.08] text-white focus:outline-none focus:border-violet-500/50"
+            className="px-3 py-2 text-sm rounded-lg bg-zinc-900/80 border border-zinc-700/50 text-white focus:outline-none focus:border-violet-500/50 focus:ring-1 focus:ring-violet-500/30 transition-colors cursor-pointer hover:border-zinc-600/70"
           >
-            <option value="all">Todas</option>
-            <option value="urgent">Urgente</option>
-            <option value="high">Alta</option>
-            <option value="medium">Média</option>
-            <option value="low">Baixa</option>
+            <option value="all" className="bg-zinc-900 text-white">Todas</option>
+            <option value="urgent" className="bg-zinc-900 text-white">Urgente</option>
+            <option value="high" className="bg-zinc-900 text-white">Alta</option>
+            <option value="medium" className="bg-zinc-900 text-white">Média</option>
+            <option value="low" className="bg-zinc-900 text-white">Baixa</option>
           </select>
         </div>
       </div>

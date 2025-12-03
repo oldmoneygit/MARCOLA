@@ -7,6 +7,7 @@
 export { useAnalysis } from './useAnalysis';
 export { useBriefingTemplates } from './useBriefingTemplates';
 export { useCalendar } from './useCalendar';
+export { useClientIntelligence } from './useClientIntelligence';
 export { useClientNotes } from './useClientNotes';
 export { useClients } from './useClients';
 export { useCredentials } from './useCredentials';

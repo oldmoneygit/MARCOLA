@@ -91,6 +91,7 @@ export function FinancialPageContent() {
     setSelectedMonth,
     markAsPaid,
     createPayment,
+    deletePayment,
     generateReminder,
     generateMonthlyPayments,
   } = useFinancial();
@@ -165,6 +166,21 @@ export function FinancialPageContent() {
   }, [createPayment]);
 
   /**
+   * Handler para excluir pagamento
+   */
+  const handleDeletePayment = useCallback(async (id: string) => {
+    try {
+      const success = await deletePayment(id);
+      if (success) {
+        setSuccessMessage('Pagamento excluído com sucesso!');
+        setTimeout(() => setSuccessMessage(null), 3000);
+      }
+    } catch (err) {
+      console.error('[FinancialPageContent] Error deleting payment:', err);
+    }
+  }, [deletePayment]);
+
+  /**
    * Handler para gerar cobranças do mês
    */
   const handleGeneratePayments = useCallback(async () => {
@@ -219,10 +235,10 @@ export function FinancialPageContent() {
           <select
             value={selectedMonth}
             onChange={(e) => setSelectedMonth(e.target.value)}
-            className="px-4 py-2 bg-white/[0.03] border border-white/[0.08] rounded-xl text-sm text-white focus:border-violet-500/50 focus:ring-1 focus:ring-violet-500/50 transition-all"
+            className="px-4 py-2 bg-zinc-900/80 border border-zinc-700/50 rounded-xl text-sm text-white focus:outline-none focus:border-violet-500/50 focus:ring-1 focus:ring-violet-500/30 transition-colors cursor-pointer hover:border-zinc-600/70"
           >
             {monthOptions.map((option) => (
-              <option key={option.value} value={option.value} className="bg-zinc-900">
+              <option key={option.value} value={option.value} className="bg-zinc-900 text-white">
                 {option.label}
               </option>
             ))}
@@ -260,6 +276,7 @@ export function FinancialPageContent() {
           value={formatCurrency(overview?.totalRevenue || 0)}
           icon={MetricIcons.revenue}
           trendLabel={`${overview?.clientsPaid || 0} + ${overview?.clientsPending || 0} + ${overview?.clientsOverdue || 0} clientes`}
+          className="bg-gradient-to-br from-violet-500/10 via-purple-500/6 to-indigo-500/10 border-violet-500/20"
         />
 
         <MetricCard
@@ -268,6 +285,7 @@ export function FinancialPageContent() {
           icon={MetricIcons.received}
           change={receivedPercent}
           trendLabel={`${overview?.clientsPaid || 0} cliente${(overview?.clientsPaid || 0) !== 1 ? 's' : ''}`}
+          className="bg-gradient-to-br from-emerald-500/10 via-green-500/6 to-teal-500/10 border-emerald-500/20"
         />
 
         <MetricCard
@@ -275,6 +293,7 @@ export function FinancialPageContent() {
           value={formatCurrency(overview?.pending || 0)}
           icon={MetricIcons.pending}
           trendLabel={`${overview?.clientsPending || 0} cobrança${(overview?.clientsPending || 0) !== 1 ? 's' : ''}`}
+          className="bg-gradient-to-br from-amber-500/10 via-orange-500/6 to-yellow-500/10 border-amber-500/20"
         />
 
         <MetricCard
@@ -284,6 +303,7 @@ export function FinancialPageContent() {
           change={(overview?.overdue || 0) > 0 ? 100 : 0}
           positiveIsGood={false}
           trendLabel={`${overview?.clientsOverdue || 0} cobrança${(overview?.clientsOverdue || 0) !== 1 ? 's' : ''}`}
+          className="bg-gradient-to-br from-red-500/10 via-rose-500/6 to-pink-500/10 border-red-500/20"
         />
       </div>
 
@@ -313,6 +333,7 @@ export function FinancialPageContent() {
           payments={payments}
           onMarkAsPaid={handleMarkAsPaid}
           onSendReminder={handleOpenReminder}
+          onDelete={handleDeletePayment}
         />
       </GlassCard>
 

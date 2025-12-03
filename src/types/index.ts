@@ -13,3 +13,4 @@ export * from './ai';
 export * from './task';
 export * from './calendar';
 export * from './briefing';
+export * from './intelligence';

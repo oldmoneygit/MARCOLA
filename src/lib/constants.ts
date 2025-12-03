@@ -30,14 +30,14 @@ export const ROUTES = {
  * Itens de navegação do menu
  */
 export const NAV_ITEMS = [
-  { id: 'dashboard', label: 'Dashboard', icon: '📊', href: ROUTES.DASHBOARD },
-  { id: 'clients', label: 'Clientes', icon: '👥', href: ROUTES.CLIENTS },
-  { id: 'tasks', label: 'Tarefas', icon: '✅', href: ROUTES.TASKS },
-  { id: 'calendar', label: 'Calendário', icon: '📅', href: ROUTES.CALENDAR },
-  { id: 'reports', label: 'Relatórios', icon: '📈', href: ROUTES.REPORTS },
-  { id: 'analysis', label: 'Análise', icon: '🧠', href: ROUTES.ANALYSIS },
-  { id: 'templates', label: 'Templates', icon: '📋', href: ROUTES.TEMPLATES },
-  { id: 'financial', label: 'Financeiro', icon: '💰', href: ROUTES.FINANCIAL },
+  { id: 'dashboard', label: 'Dashboard', icon: 'LayoutDashboard', href: ROUTES.DASHBOARD },
+  { id: 'clients', label: 'Clientes', icon: 'Users', href: ROUTES.CLIENTS },
+  { id: 'tasks', label: 'Tarefas', icon: 'CheckSquare', href: ROUTES.TASKS },
+  { id: 'calendar', label: 'Calendário', icon: 'Calendar', href: ROUTES.CALENDAR },
+  { id: 'reports', label: 'Relatórios', icon: 'BarChart3', href: ROUTES.REPORTS },
+  { id: 'analysis', label: 'Análise', icon: 'Brain', href: ROUTES.ANALYSIS },
+  { id: 'templates', label: 'Briefings', icon: 'FileText', href: ROUTES.TEMPLATES },
+  { id: 'financial', label: 'Financeiro', icon: 'Wallet', href: ROUTES.FINANCIAL },
 ] as const;
 
 /**
@@ -58,29 +58,32 @@ export const SEGMENTS = [
 ] as const;
 
 /**
- * Status de cliente com configurações visuais
+ * Status de cliente com configurações visuais modernas
  */
 export const CLIENT_STATUS = {
   active: {
     label: 'Ativo',
     color: 'success',
-    bgClass: 'bg-emerald-500/20',
-    textClass: 'text-emerald-400',
-    dotClass: 'bg-emerald-500',
+    bgClass: 'bg-emerald-500/15',
+    textClass: 'text-emerald-300',
+    borderClass: 'border-emerald-500/40',
+    dotClass: 'bg-emerald-400',
   },
   paused: {
     label: 'Pausado',
     color: 'warning',
-    bgClass: 'bg-amber-500/20',
-    textClass: 'text-amber-400',
-    dotClass: 'bg-amber-500',
+    bgClass: 'bg-amber-500/15',
+    textClass: 'text-amber-300',
+    borderClass: 'border-amber-500/40',
+    dotClass: 'bg-amber-400',
   },
   inactive: {
     label: 'Inativo',
     color: 'error',
-    bgClass: 'bg-red-500/20',
-    textClass: 'text-red-400',
-    dotClass: 'bg-red-500',
+    bgClass: 'bg-red-500/15',
+    textClass: 'text-red-300',
+    borderClass: 'border-red-500/40',
+    dotClass: 'bg-red-400',
   },
 } as const;
 
@@ -95,96 +98,147 @@ export const MEETING_FREQUENCIES = [
 ] as const;
 
 /**
- * Status de pagamento com configurações visuais
+ * Frequências de captação disponíveis
+ */
+export const CAPTATION_FREQUENCIES = [
+  { value: 'weekly', label: 'Semanal' },
+  { value: 'biweekly', label: 'Quinzenal' },
+  { value: 'monthly', label: 'Mensal' },
+  { value: 'on_demand', label: 'Sob demanda' },
+] as const;
+
+/**
+ * Faixas de quantidade de vídeos para campanhas
+ */
+export const VIDEO_QUANTITY_RANGES = [
+  { value: '2_4', label: '2 a 4 vídeos' },
+  { value: '4_6', label: '4 a 6 vídeos' },
+  { value: '6_10', label: '6 a 10 vídeos' },
+  { value: '10_15', label: '10 a 15 vídeos' },
+  { value: '15_plus', label: '15+ vídeos' },
+] as const;
+
+/**
+ * Dias da semana para reuniões fixas
+ */
+export const WEEK_DAYS = [
+  { value: 'monday', label: 'Segunda-feira' },
+  { value: 'tuesday', label: 'Terça-feira' },
+  { value: 'wednesday', label: 'Quarta-feira' },
+  { value: 'thursday', label: 'Quinta-feira' },
+  { value: 'friday', label: 'Sexta-feira' },
+  { value: 'saturday', label: 'Sábado' },
+  { value: 'sunday', label: 'Domingo' },
+] as const;
+
+/**
+ * Status de pagamento com configurações visuais modernas
  */
 export const PAYMENT_STATUS = {
   pending: {
     label: 'Pendente',
     color: 'warning',
-    bgClass: 'bg-amber-500/20',
-    textClass: 'text-amber-400',
+    bgClass: 'bg-amber-500/15',
+    textClass: 'text-amber-300',
+    borderClass: 'border-amber-500/40',
+    dotClass: 'bg-amber-400',
     icon: 'clock',
   },
   paid: {
     label: 'Pago',
     color: 'success',
-    bgClass: 'bg-emerald-500/20',
-    textClass: 'text-emerald-400',
+    bgClass: 'bg-emerald-500/15',
+    textClass: 'text-emerald-300',
+    borderClass: 'border-emerald-500/40',
+    dotClass: 'bg-emerald-400',
     icon: 'check-circle',
   },
   overdue: {
     label: 'Atrasado',
     color: 'error',
-    bgClass: 'bg-red-500/20',
-    textClass: 'text-red-400',
+    bgClass: 'bg-red-500/15',
+    textClass: 'text-red-300',
+    borderClass: 'border-red-500/40',
+    dotClass: 'bg-red-400',
     icon: 'alert',
   },
 } as const;
 
 /**
- * Status de anúncio com configurações visuais
+ * Status de anúncio com configurações visuais modernas
  */
 export const AD_STATUS = {
   winner: {
     label: 'Vencedor',
     color: 'success',
-    bgClass: 'bg-emerald-500/20',
-    textClass: 'text-emerald-400',
+    bgClass: 'bg-emerald-500/15',
+    textClass: 'text-emerald-300',
+    borderClass: 'border-emerald-500/40',
+    dotClass: 'bg-emerald-400',
     icon: 'trophy',
   },
   active: {
     label: 'Ativo',
     color: 'info',
-    bgClass: 'bg-blue-500/20',
-    textClass: 'text-blue-400',
+    bgClass: 'bg-blue-500/15',
+    textClass: 'text-blue-300',
+    borderClass: 'border-blue-500/40',
+    dotClass: 'bg-blue-400',
     icon: 'check',
   },
   fatigue: {
     label: 'Fadiga',
     color: 'warning',
-    bgClass: 'bg-amber-500/20',
-    textClass: 'text-amber-400',
+    bgClass: 'bg-amber-500/15',
+    textClass: 'text-amber-300',
+    borderClass: 'border-amber-500/40',
+    dotClass: 'bg-amber-400',
     icon: 'alert-triangle',
   },
   pause: {
     label: 'Pausar',
     color: 'error',
-    bgClass: 'bg-red-500/20',
-    textClass: 'text-red-400',
+    bgClass: 'bg-red-500/15',
+    textClass: 'text-red-300',
+    borderClass: 'border-red-500/40',
+    dotClass: 'bg-red-400',
     icon: 'x-circle',
   },
 } as const;
 
 /**
- * Severidade de sugestões com configurações visuais
+ * Severidade de sugestões com configurações visuais modernas
  */
 export const SUGGESTION_SEVERITY = {
   urgent: {
     label: 'URGENTE',
     color: 'error',
-    bgClass: 'bg-red-500/20',
-    textClass: 'text-red-400',
-    borderClass: 'border-red-500',
+    bgClass: 'bg-red-500/15',
+    textClass: 'text-red-300',
+    borderClass: 'border-red-500/40',
+    dotClass: 'bg-red-400',
     icon: 'circle-red',
-    iconColor: 'text-red-500',
+    iconColor: 'text-red-400',
   },
   warning: {
     label: 'ATENÇÃO',
     color: 'warning',
-    bgClass: 'bg-amber-500/20',
-    textClass: 'text-amber-400',
-    borderClass: 'border-amber-500',
+    bgClass: 'bg-amber-500/15',
+    textClass: 'text-amber-300',
+    borderClass: 'border-amber-500/40',
+    dotClass: 'bg-amber-400',
     icon: 'circle-yellow',
-    iconColor: 'text-amber-500',
+    iconColor: 'text-amber-400',
   },
   info: {
     label: 'SUGESTÃO',
     color: 'info',
-    bgClass: 'bg-blue-500/20',
-    textClass: 'text-blue-400',
-    borderClass: 'border-blue-500',
+    bgClass: 'bg-blue-500/15',
+    textClass: 'text-blue-300',
+    borderClass: 'border-blue-500/40',
+    dotClass: 'bg-blue-400',
     icon: 'circle-blue',
-    iconColor: 'text-blue-500',
+    iconColor: 'text-blue-400',
   },
 } as const;
 

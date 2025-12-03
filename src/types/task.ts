@@ -160,50 +160,98 @@ export interface ApplyTemplatesDTO {
 // =============================================================================
 
 /** Configuração de prioridades */
-export const TASK_PRIORITY_CONFIG: Record<TaskPriority, { label: string; icon: string; iconColor: string; className: string }> = {
+export const TASK_PRIORITY_CONFIG: Record<TaskPriority, {
+  label: string;
+  icon: string;
+  iconColor: string;
+  dotColor: string;
+  bgColor: string;
+  textColor: string;
+  borderColor: string;
+  glowColor: string;
+}> = {
   urgent: {
     label: 'Urgente',
     icon: 'circle-red',
-    iconColor: 'text-red-500',
-    className: 'bg-red-500/20 text-red-400 border-red-500/30',
+    iconColor: 'text-red-400',
+    dotColor: 'bg-red-400',
+    bgColor: 'bg-red-500/30',
+    textColor: 'text-red-200',
+    borderColor: 'border-red-500/50',
+    glowColor: 'shadow-red-500/20',
   },
   high: {
     label: 'Alta',
     icon: 'circle-orange',
-    iconColor: 'text-orange-500',
-    className: 'bg-orange-500/20 text-orange-400 border-orange-500/30',
+    iconColor: 'text-orange-400',
+    dotColor: 'bg-orange-400',
+    bgColor: 'bg-orange-500/30',
+    textColor: 'text-orange-200',
+    borderColor: 'border-orange-500/50',
+    glowColor: 'shadow-orange-500/20',
   },
   medium: {
     label: 'Média',
     icon: 'circle-yellow',
-    iconColor: 'text-yellow-500',
-    className: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30',
+    iconColor: 'text-yellow-400',
+    dotColor: 'bg-yellow-400',
+    bgColor: 'bg-yellow-500/30',
+    textColor: 'text-yellow-200',
+    borderColor: 'border-yellow-500/50',
+    glowColor: 'shadow-yellow-500/20',
   },
   low: {
     label: 'Baixa',
     icon: 'circle-green',
-    iconColor: 'text-green-500',
-    className: 'bg-green-500/20 text-green-400 border-green-500/30',
+    iconColor: 'text-emerald-400',
+    dotColor: 'bg-emerald-400',
+    bgColor: 'bg-emerald-500/30',
+    textColor: 'text-emerald-200',
+    borderColor: 'border-emerald-500/50',
+    glowColor: 'shadow-emerald-500/20',
   },
 };
 
 /** Configuração de status */
-export const TASK_STATUS_CONFIG: Record<TaskStatus, { label: string; className: string }> = {
+export const TASK_STATUS_CONFIG: Record<TaskStatus, {
+  label: string;
+  icon: string;
+  dotColor: string;
+  bgColor: string;
+  textColor: string;
+  borderColor: string;
+}> = {
   todo: {
     label: 'A fazer',
-    className: 'bg-zinc-500/20 text-zinc-400',
+    icon: 'clock',
+    dotColor: 'bg-zinc-400',
+    bgColor: 'bg-zinc-500/30',
+    textColor: 'text-zinc-200',
+    borderColor: 'border-zinc-500/50',
   },
   doing: {
     label: 'Fazendo',
-    className: 'bg-blue-500/20 text-blue-400',
+    icon: 'play',
+    dotColor: 'bg-blue-400',
+    bgColor: 'bg-blue-500/30',
+    textColor: 'text-blue-200',
+    borderColor: 'border-blue-500/50',
   },
   done: {
     label: 'Concluída',
-    className: 'bg-emerald-500/20 text-emerald-400',
+    icon: 'check',
+    dotColor: 'bg-emerald-400',
+    bgColor: 'bg-emerald-500/30',
+    textColor: 'text-emerald-200',
+    borderColor: 'border-emerald-500/50',
   },
   cancelled: {
     label: 'Cancelada',
-    className: 'bg-red-500/20 text-red-400',
+    icon: 'x-circle',
+    dotColor: 'bg-red-400',
+    bgColor: 'bg-red-500/30',
+    textColor: 'text-red-200',
+    borderColor: 'border-red-500/50',
   },
 };
 

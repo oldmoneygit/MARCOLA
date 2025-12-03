@@ -10,7 +10,7 @@ import { useCallback, useEffect, useState } from 'react';
 
 import { Button, Input, Modal, Select } from '@/components/ui';
 import { BriefingForm } from '@/components/clients/BriefingForm';
-import { MEETING_FREQUENCIES, SEGMENTS } from '@/lib/constants';
+import { CAPTATION_FREQUENCIES, MEETING_FREQUENCIES, SEGMENTS, VIDEO_QUANTITY_RANGES, WEEK_DAYS } from '@/lib/constants';
 
 import type { BriefingData, Client, CreateClientDTO } from '@/types';
 
@@ -54,6 +54,8 @@ export function ClientFormStepper({
     due_day: client?.due_day || initialData?.due_day || 10,
     // Financeiro
     average_ticket: client?.average_ticket || initialData?.average_ticket || undefined,
+    profit_margin: client?.profit_margin || initialData?.profit_margin || undefined,
+    monthly_ad_budget: client?.monthly_ad_budget || initialData?.monthly_ad_budget || undefined,
     // Localização
     city: client?.city || initialData?.city || '',
     address: client?.address || initialData?.address || '',
@@ -71,6 +73,12 @@ export function ClientFormStepper({
     assets_links: client?.assets_links || initialData?.assets_links || '',
     // Gestão
     meeting_frequency: client?.meeting_frequency || initialData?.meeting_frequency || undefined,
+    captation_frequency: client?.captation_frequency || initialData?.captation_frequency || undefined,
+    videos_sales: client?.videos_sales || initialData?.videos_sales || undefined,
+    videos_awareness: client?.videos_awareness || initialData?.videos_awareness || undefined,
+    fixed_meeting_enabled: client?.fixed_meeting_enabled ?? initialData?.fixed_meeting_enabled ?? false,
+    fixed_meeting_day: client?.fixed_meeting_day || initialData?.fixed_meeting_day || undefined,
+    fixed_meeting_time: client?.fixed_meeting_time || initialData?.fixed_meeting_time || undefined,
     image_authorization: client?.image_authorization ?? initialData?.image_authorization ?? undefined,
     content_request: client?.content_request || initialData?.content_request || '',
     // Observações
@@ -78,7 +86,7 @@ export function ClientFormStepper({
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const [briefingData, setBriefingData] = useState<BriefingData | null>(null);
+  const [briefingData, setBriefingData] = useState<BriefingData | null>(client?.briefing_data || null);
   const [canSubmit, setCanSubmit] = useState(false);
 
   // Reset step when modal opens
@@ -86,10 +94,11 @@ export function ClientFormStepper({
     if (isOpen) {
       setCurrentStep(1);
       setErrors({});
-      setBriefingData(null);
+      // Preserve existing briefing data when editing
+      setBriefingData(client?.briefing_data || null);
       setCanSubmit(false);
     }
-  }, [isOpen]);
+  }, [isOpen, client?.briefing_data]);
 
   // Habilita submit apenas quando estiver no último step por um momento
   useEffect(() => {
@@ -113,6 +122,8 @@ export function ClientFormStepper({
         monthly_value: client.monthly_value || 0,
         due_day: client.due_day || 10,
         average_ticket: client.average_ticket || undefined,
+        profit_margin: client.profit_margin || undefined,
+        monthly_ad_budget: client.monthly_ad_budget || undefined,
         city: client.city || '',
         address: client.address || '',
         contact_name: client.contact_name || '',
@@ -125,6 +136,12 @@ export function ClientFormStepper({
         menu_url: client.menu_url || '',
         assets_links: client.assets_links || '',
         meeting_frequency: client.meeting_frequency || undefined,
+        captation_frequency: client.captation_frequency || undefined,
+        videos_sales: client.videos_sales || undefined,
+        videos_awareness: client.videos_awareness || undefined,
+        fixed_meeting_enabled: client.fixed_meeting_enabled ?? false,
+        fixed_meeting_day: client.fixed_meeting_day || undefined,
+        fixed_meeting_time: client.fixed_meeting_time || undefined,
         image_authorization: client.image_authorization ?? undefined,
         content_request: client.content_request || '',
         notes: client.notes || '',
@@ -278,7 +295,7 @@ export function ClientFormStepper({
       </div>
 
       {/* Step Content */}
-      <div className="min-h-[320px]">
+      <div className="min-h-[320px] max-h-[50vh] overflow-y-auto pr-1">
         {/* Step 1: Dados Básicos */}
         {currentStep === 1 && (
           <div className="space-y-4 animate-fade-in">
@@ -356,6 +373,40 @@ export function ClientFormStepper({
                 onChange={handleChange}
                 error={errors.due_day}
                 placeholder="10"
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <Input
+                label="Margem de Lucro (%)"
+                name="profit_margin"
+                type="number"
+                min={0}
+                max={100}
+                step={0.1}
+                value={formData.profit_margin || ''}
+                onChange={handleChange}
+                placeholder="Ex: 30"
+                leftIcon={
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                  </svg>
+                }
+              />
+
+              <Input
+                label="Orçamento de Anúncios (R$/mês)"
+                name="monthly_ad_budget"
+                type="number"
+                min={0}
+                value={formData.monthly_ad_budget || ''}
+                onChange={handleChange}
+                placeholder="Ex: 5000"
+                leftIcon={
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                }
               />
             </div>
           </div>
@@ -502,14 +553,88 @@ export function ClientFormStepper({
         {/* Step 5: Gestão */}
         {currentStep === 5 && (
           <div className="space-y-4 animate-fade-in">
-            <Select
-              label="Frequência de Reuniões"
-              name="meeting_frequency"
-              value={formData.meeting_frequency || ''}
-              onChange={handleChange}
-              options={MEETING_FREQUENCIES}
-              placeholder="Selecione a frequência"
-            />
+            <div className="grid grid-cols-2 gap-4">
+              <Select
+                label="Frequência de Reuniões"
+                name="meeting_frequency"
+                value={formData.meeting_frequency || ''}
+                onChange={handleChange}
+                options={MEETING_FREQUENCIES}
+                placeholder="Selecione a frequência"
+              />
+
+              <Select
+                label="Frequência de Captações"
+                name="captation_frequency"
+                value={formData.captation_frequency || ''}
+                onChange={handleChange}
+                options={CAPTATION_FREQUENCIES}
+                placeholder="Selecione a frequência"
+              />
+            </div>
+
+            {/* Opção de Dia Fixo para Reuniões */}
+            {formData.meeting_frequency && formData.meeting_frequency !== 'on_demand' && (
+              <div className="p-4 rounded-xl bg-violet-500/5 border border-violet-500/20 space-y-4">
+                <label className="flex items-center gap-3 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    name="fixed_meeting_enabled"
+                    checked={formData.fixed_meeting_enabled ?? false}
+                    onChange={handleChange}
+                    className="w-5 h-5 rounded border-white/[0.2] bg-white/[0.05] text-violet-500 focus:ring-violet-500/50 focus:ring-offset-0"
+                  />
+                  <div>
+                    <span className="text-sm font-medium text-white">Definir dia fixo para reunião</span>
+                    <p className="text-xs text-zinc-500 mt-0.5">
+                      Marcar automaticamente no calendário as reuniões recorrentes
+                    </p>
+                  </div>
+                </label>
+
+                {formData.fixed_meeting_enabled && (
+                  <div className="grid grid-cols-2 gap-4 pt-2">
+                    <Select
+                      label="Dia da Semana"
+                      name="fixed_meeting_day"
+                      value={formData.fixed_meeting_day || ''}
+                      onChange={handleChange}
+                      options={WEEK_DAYS}
+                      placeholder="Selecione o dia"
+                    />
+
+                    <Input
+                      label="Horário"
+                      name="fixed_meeting_time"
+                      type="time"
+                      value={formData.fixed_meeting_time || ''}
+                      onChange={handleChange}
+                      placeholder="14:00"
+                    />
+                  </div>
+                )}
+              </div>
+            )}
+
+            <div className="grid grid-cols-2 gap-4">
+              <Select
+                label="Vídeos p/ Campanha de Vendas"
+                name="videos_sales"
+                value={formData.videos_sales || ''}
+                onChange={handleChange}
+                options={VIDEO_QUANTITY_RANGES}
+                placeholder="Quantidade de vídeos"
+              />
+
+              <Select
+                label="Vídeos p/ Campanha de Reconhecimento"
+                name="videos_awareness"
+                value={formData.videos_awareness || ''}
+                onChange={handleChange}
+                options={VIDEO_QUANTITY_RANGES}
+                placeholder="Quantidade de vídeos"
+              />
+            </div>
 
             <div>
               <label className="block text-sm font-medium text-zinc-300 mb-2">
@@ -519,12 +644,12 @@ export function ClientFormStepper({
                 name="content_request"
                 value={formData.content_request || ''}
                 onChange={handleChange}
-                rows={4}
-                placeholder="Descreva a quantidade e objetivo dos criativos para este cliente.&#10;Ex: 4 artes por semana para feed, 2 vídeos por mês para stories, foco em promoções e engajamento..."
+                rows={3}
+                placeholder="Descreva detalhes adicionais sobre os criativos para este cliente..."
                 className="w-full rounded-xl border bg-white/[0.03] backdrop-blur-sm text-white placeholder:text-zinc-500 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-[#0a0a0f] border-white/[0.08] focus:ring-violet-500/50 focus:border-violet-500/50 hover:border-white/[0.15] hover:bg-white/[0.05] py-3 px-4 text-sm"
               />
               <p className="text-xs text-zinc-500 mt-1.5">
-                Informe a quantidade de criativos, frequência de entrega e objetivos específicos
+                Informações adicionais sobre criativos, frequência de entrega e objetivos
               </p>
             </div>
 

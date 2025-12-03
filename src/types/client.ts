@@ -17,6 +17,21 @@ export type ClientStatus = 'active' | 'paused' | 'inactive';
 export type MeetingFrequency = 'weekly' | 'biweekly' | 'monthly' | 'on_demand';
 
 /**
+ * Frequência de captações/prospecção
+ */
+export type CaptationFrequency = 'weekly' | 'biweekly' | 'monthly' | 'on_demand';
+
+/**
+ * Faixas de quantidade de vídeos para campanhas
+ */
+export type VideoQuantityRange = '2_4' | '4_6' | '6_10' | '10_15' | '15_plus';
+
+/**
+ * Dias da semana para reuniões fixas
+ */
+export type WeekDay = 'monday' | 'tuesday' | 'wednesday' | 'thursday' | 'friday' | 'saturday' | 'sunday';
+
+/**
  * Interface principal do Cliente
  */
 export interface Client {
@@ -35,6 +50,8 @@ export interface Client {
   monthly_value: number;
   due_day: number;
   average_ticket: number | null;
+  profit_margin: number | null;
+  monthly_ad_budget: number | null;
 
   // Localização
   city: string | null;
@@ -60,6 +77,12 @@ export interface Client {
 
   // Gestão e produção
   meeting_frequency: MeetingFrequency | null;
+  captation_frequency: CaptationFrequency | null;
+  videos_sales: VideoQuantityRange | null;
+  videos_awareness: VideoQuantityRange | null;
+  fixed_meeting_enabled: boolean | null;
+  fixed_meeting_day: WeekDay | null;
+  fixed_meeting_time: string | null;
   image_authorization: boolean | null;
   content_request: string | null;
 
@@ -104,6 +127,8 @@ export interface CreateClientDTO {
 
   // Financeiro (opcional)
   average_ticket?: number;
+  profit_margin?: number;
+  monthly_ad_budget?: number;
 
   // Localização (opcional)
   city?: string;
@@ -129,6 +154,12 @@ export interface CreateClientDTO {
 
   // Gestão e produção (opcionais)
   meeting_frequency?: MeetingFrequency;
+  captation_frequency?: CaptationFrequency;
+  videos_sales?: VideoQuantityRange;
+  videos_awareness?: VideoQuantityRange;
+  fixed_meeting_enabled?: boolean;
+  fixed_meeting_day?: WeekDay;
+  fixed_meeting_time?: string;
   image_authorization?: boolean;
   content_request?: string;
 

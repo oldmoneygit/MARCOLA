@@ -11,7 +11,7 @@ import { createClient } from '@/lib/supabase/server';
 import type { NextRequest } from 'next/server';
 
 interface RouteParams {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }
 
 /**
@@ -20,6 +20,7 @@ interface RouteParams {
  */
 export async function GET(_request: NextRequest, { params }: RouteParams) {
   try {
+    const { id } = await params;
     const supabase = await createClient();
 
     const { data: { user }, error: authError } = await supabase.auth.getUser();
@@ -37,7 +38,7 @@ export async function GET(_request: NextRequest, { params }: RouteParams) {
         *,
         client:clients(id, name, segment, contact_phone)
       `)
-      .eq('id', params.id)
+      .eq('id', id)
       .eq('user_id', user.id)
       .single();
 
@@ -64,6 +65,7 @@ export async function GET(_request: NextRequest, { params }: RouteParams) {
  */
 export async function PUT(request: NextRequest, { params }: RouteParams) {
   try {
+    const { id } = await params;
     const supabase = await createClient();
 
     const { data: { user }, error: authError } = await supabase.auth.getUser();
@@ -79,7 +81,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
     const { data: existingPayment, error: checkError } = await supabase
       .from('payments')
       .select('id, status')
-      .eq('id', params.id)
+      .eq('id', id)
       .eq('user_id', user.id)
       .single();
 
@@ -116,7 +118,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
     const { data: payment, error } = await supabase
       .from('payments')
       .update(updateData)
-      .eq('id', params.id)
+      .eq('id', id)
       .select()
       .single();
 
@@ -144,6 +146,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
  */
 export async function PATCH(request: NextRequest, { params }: RouteParams) {
   try {
+    const { id } = await params;
     const supabase = await createClient();
 
     const { data: { user }, error: authError } = await supabase.auth.getUser();
@@ -159,7 +162,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     const { data: existingPayment, error: checkError } = await supabase
       .from('payments')
       .select('id')
-      .eq('id', params.id)
+      .eq('id', id)
       .eq('user_id', user.id)
       .single();
 
@@ -181,7 +184,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
         notes: notes || null,
         updated_at: new Date().toISOString(),
       })
-      .eq('id', params.id)
+      .eq('id', id)
       .select()
       .single();
 
@@ -209,6 +212,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
  */
 export async function DELETE(_request: NextRequest, { params }: RouteParams) {
   try {
+    const { id } = await params;
     const supabase = await createClient();
 
     const { data: { user }, error: authError } = await supabase.auth.getUser();
@@ -220,10 +224,25 @@ export async function DELETE(_request: NextRequest, { params }: RouteParams) {
       );
     }
 
+    // Verifica se o pagamento existe e pertence ao usuário antes de deletar
+    const { data: existingPayment, error: checkError } = await supabase
+      .from('payments')
+      .select('id')
+      .eq('id', id)
+      .eq('user_id', user.id)
+      .single();
+
+    if (checkError || !existingPayment) {
+      return NextResponse.json(
+        { error: 'Pagamento não encontrado' },
+        { status: 404 }
+      );
+    }
+
     const { error } = await supabase
       .from('payments')
       .delete()
-      .eq('id', params.id)
+      .eq('id', id)
       .eq('user_id', user.id);
 
     if (error) {

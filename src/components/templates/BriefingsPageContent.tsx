@@ -9,7 +9,8 @@
 import { useCallback, useMemo, useState } from 'react';
 
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
-import { Button, GlassCard, Modal, Skeleton, EmptyState, Input, Select } from '@/components/ui';
+import { Button, GlassCard, Modal, Skeleton, EmptyState, Input, Select, Icon } from '@/components/ui';
+import { cn } from '@/lib/utils';
 
 import { useBriefingTemplates } from '@/hooks/useBriefingTemplates';
 
@@ -26,29 +27,29 @@ import type {
 
 /** Segmentos comuns para briefings */
 const COMMON_SEGMENTS = [
-  { value: 'delivery', label: 'Delivery', icon: '🛵' },
-  { value: 'restaurante', label: 'Restaurante', icon: '🍽️' },
-  { value: 'academia', label: 'Academia', icon: '💪' },
-  { value: 'ecommerce', label: 'E-commerce', icon: '🛒' },
-  { value: 'clinica', label: 'Clínica', icon: '🏥' },
-  { value: 'imobiliaria', label: 'Imobiliária', icon: '🏠' },
-  { value: 'educacao', label: 'Educação', icon: '📚' },
-  { value: 'servicos', label: 'Serviços', icon: '🔧' },
-  { value: 'varejo', label: 'Varejo', icon: '🏪' },
-  { value: 'saude', label: 'Saúde', icon: '❤️' },
-  { value: 'beleza', label: 'Beleza', icon: '💅' },
-  { value: 'pet', label: 'Pet Shop', icon: '🐾' },
+  { value: 'delivery', label: 'Delivery', icon: 'pizza' },
+  { value: 'restaurante', label: 'Restaurante', icon: 'pizza' },
+  { value: 'academia', label: 'Academia', icon: 'fitness' },
+  { value: 'ecommerce', label: 'E-commerce', icon: 'cart' },
+  { value: 'clinica', label: 'Clínica', icon: 'hospital' },
+  { value: 'imobiliaria', label: 'Imobiliária', icon: 'map-pin' },
+  { value: 'educacao', label: 'Educação', icon: 'graduation' },
+  { value: 'servicos', label: 'Serviços', icon: 'wrench' },
+  { value: 'varejo', label: 'Varejo', icon: 'cart' },
+  { value: 'saude', label: 'Saúde', icon: 'hospital' },
+  { value: 'beleza', label: 'Beleza', icon: 'sparkles' },
+  { value: 'pet', label: 'Pet Shop', icon: 'heart' },
 ];
 
 /** Tipos de campo disponíveis */
 const FIELD_TYPES: { value: BriefingFieldType; label: string; icon: string }[] = [
-  { value: 'text', label: 'Texto curto', icon: '📝' },
-  { value: 'textarea', label: 'Texto longo', icon: '📄' },
-  { value: 'select', label: 'Seleção única', icon: '☑️' },
-  { value: 'multiselect', label: 'Seleção múltipla', icon: '✅' },
-  { value: 'checkbox', label: 'Sim/Não', icon: '🔘' },
-  { value: 'number', label: 'Número', icon: '🔢' },
-  { value: 'date', label: 'Data', icon: '📅' },
+  { value: 'text', label: 'Texto curto', icon: 'filetext' },
+  { value: 'textarea', label: 'Texto longo', icon: 'filetext' },
+  { value: 'select', label: 'Seleção única', icon: 'filetext' },
+  { value: 'multiselect', label: 'Seleção múltipla', icon: 'checksquare' },
+  { value: 'checkbox', label: 'Sim/Não', icon: 'check' },
+  { value: 'number', label: 'Número', icon: 'barchart3' },
+  { value: 'date', label: 'Data', icon: 'calendar' },
 ];
 
 // =============================================
@@ -153,7 +154,7 @@ function QuestionEditor({
         <Select
           value={question.field_type}
           onChange={(e) => handleFieldChange('field_type', e.target.value as BriefingFieldType)}
-          options={FIELD_TYPES.map((t) => ({ value: t.value, label: `${t.icon} ${t.label}` }))}
+          options={FIELD_TYPES.map((t) => ({ value: t.value, label: t.label }))}
         />
         <label className="flex items-center gap-2 cursor-pointer">
           <input
@@ -352,17 +353,17 @@ function BriefingTemplateForm({
           </div>
 
           <div>
-            <label className="block text-xs text-zinc-500 mb-1.5">Segmento *</label>
+            <label className="block text-xs text-zinc-400 mb-1.5">Segmento *</label>
             <select
               name="segment"
               value={formData.segment}
               onChange={handleChange}
-              className="w-full px-3 py-2 rounded-lg bg-white/[0.03] border border-white/[0.08] text-white focus:outline-none focus:border-violet-500/50 focus:ring-1 focus:ring-violet-500/50 transition-colors"
+              className="w-full px-3 py-2 rounded-lg bg-zinc-900/80 border border-zinc-700/50 text-white focus:outline-none focus:border-violet-500/50 focus:ring-1 focus:ring-violet-500/30 transition-colors cursor-pointer hover:border-zinc-600/70"
             >
-              <option value="">Selecione...</option>
+              <option value="" className="bg-zinc-900 text-white">Selecione...</option>
               {COMMON_SEGMENTS.map((seg) => (
-                <option key={seg.value} value={seg.value}>
-                  {seg.icon} {seg.label}
+                <option key={seg.value} value={seg.value} className="bg-zinc-900 text-white">
+                  {seg.label}
                 </option>
               ))}
             </select>
@@ -464,46 +465,76 @@ function BriefingTemplateCard({
   const questionCount = template.questions?.length || 0;
   const isSystemTemplate = template.user_id === null;
 
+  // Gradiente baseado no segmento para diferenciação visual (sutil mas visível)
+  const getSegmentGradient = (segment: string) => {
+    const gradients: Record<string, string> = {
+      delivery: 'bg-gradient-to-br from-yellow-500/8 via-amber-500/5 to-yellow-400/8 border-yellow-500/15',
+      restaurante: 'bg-gradient-to-br from-red-500/8 via-rose-500/5 to-pink-500/8 border-red-500/15',
+      academia: 'bg-gradient-to-br from-blue-500/8 via-cyan-500/5 to-teal-500/8 border-blue-500/15',
+      ecommerce: 'bg-gradient-to-br from-purple-500/8 via-violet-500/5 to-indigo-500/8 border-purple-500/15',
+      clinica: 'bg-gradient-to-br from-emerald-500/8 via-green-500/5 to-teal-500/8 border-emerald-500/15',
+      imobiliaria: 'bg-gradient-to-br from-amber-500/8 via-orange-500/5 to-red-500/8 border-amber-500/15',
+      educacao: 'bg-gradient-to-br from-indigo-500/8 via-blue-500/5 to-cyan-500/8 border-indigo-500/15',
+      servicos: 'bg-gradient-to-br from-zinc-500/8 via-slate-500/5 to-gray-500/8 border-zinc-500/15',
+      varejo: 'bg-gradient-to-br from-pink-500/8 via-rose-500/5 to-red-500/8 border-pink-500/15',
+      saude: 'bg-gradient-to-br from-emerald-500/8 via-green-500/5 to-lime-500/8 border-emerald-500/15',
+      beleza: 'bg-gradient-to-br from-fuchsia-500/8 via-pink-500/5 to-rose-500/8 border-fuchsia-500/15',
+      pet: 'bg-gradient-to-br from-purple-500/8 via-pink-500/5 to-rose-500/8 border-purple-500/15',
+    };
+    return gradients[segment] || 'bg-gradient-to-br from-violet-500/8 via-purple-500/5 to-indigo-500/8 border-violet-500/15';
+  };
+
   return (
-    <div
-      className={`p-4 rounded-xl border transition-colors ${
+    <GlassCard
+      className={cn(
+        'p-5 transition-all duration-300 hover:scale-[1.02] hover:shadow-xl hover:shadow-violet-500/10',
         template.is_active
-          ? 'bg-white/[0.02] border-white/[0.08] hover:bg-white/[0.04]'
+          ? getSegmentGradient(template.segment)
           : 'bg-zinc-900/50 border-zinc-800/50 opacity-60'
-      }`}
+      )}
     >
-      <div className="flex items-start justify-between mb-3">
-        <div className="flex items-center gap-2">
-          <h3 className="font-medium text-white">{template.name}</h3>
+      <div className="flex items-start justify-between mb-4">
+        <div className="flex items-center gap-3 flex-1 min-w-0">
+          {segmentInfo && (
+            <div className="p-2 rounded-lg bg-white/[0.05] flex-shrink-0">
+              <Icon name={segmentInfo.icon} size="sm" className="text-violet-400" />
+            </div>
+          )}
+          <div className="flex-1 min-w-0">
+            <h3 className="font-semibold text-white truncate mb-1">{template.name}</h3>
+            {template.description && (
+              <p className="text-xs text-zinc-400 line-clamp-2">{template.description}</p>
+            )}
+          </div>
+        </div>
+        <div className="flex items-center gap-1.5 flex-shrink-0">
           {!template.is_active && (
-            <span className="px-2 py-0.5 text-xs rounded-full bg-zinc-700 text-zinc-400">
+            <span className="px-2 py-1 text-xs rounded-lg bg-zinc-700/50 text-zinc-400 border border-zinc-600/50">
               Inativo
             </span>
           )}
           {isSystemTemplate && (
-            <span className="px-2 py-0.5 text-xs rounded-full bg-blue-500/10 text-blue-400">
+            <span className="px-2 py-1 text-xs rounded-lg bg-blue-500/15 text-blue-400 border border-blue-500/30">
               Sistema
             </span>
           )}
         </div>
       </div>
 
-      {template.description && (
-        <p className="text-sm text-zinc-400 mb-3">{template.description}</p>
-      )}
-
-      <div className="flex flex-wrap items-center gap-2 mb-4 text-xs">
+      <div className="flex flex-wrap items-center gap-2 mb-4">
         {segmentInfo && (
-          <span className="px-2 py-1 rounded-full bg-violet-500/10 text-violet-400">
-            {segmentInfo.icon} {segmentInfo.label}
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs rounded-lg bg-violet-500/10 text-violet-300 border border-violet-500/20">
+            <Icon name={segmentInfo.icon} size="xs" />
+            {segmentInfo.label}
           </span>
         )}
         {!segmentInfo && template.segment && (
-          <span className="px-2 py-1 rounded-full bg-zinc-500/10 text-zinc-400">
+          <span className="px-2.5 py-1 text-xs rounded-lg bg-zinc-500/10 text-zinc-400 border border-zinc-500/20">
             {template.segment}
           </span>
         )}
-        <span className="px-2 py-1 rounded-full bg-emerald-500/10 text-emerald-400">
+        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs rounded-lg bg-emerald-500/10 text-emerald-300 border border-emerald-500/20">
+          <Icon name="filetext" size="xs" />
           {questionCount} {questionCount === 1 ? 'pergunta' : 'perguntas'}
         </span>
       </div>
@@ -511,57 +542,67 @@ function BriefingTemplateCard({
       {/* Preview de perguntas */}
       {template.questions && template.questions.length > 0 && (
         <div className="mb-4 p-3 rounded-lg bg-white/[0.02] border border-white/[0.05]">
-          <p className="text-xs text-zinc-500 mb-2">Perguntas:</p>
-          <ul className="space-y-1">
+          <div className="flex items-center gap-2 mb-2">
+            <Icon name="filetext" size="xs" className="text-zinc-500" />
+            <p className="text-xs font-medium text-zinc-400">Perguntas:</p>
+          </div>
+          <ul className="space-y-1.5">
             {template.questions.slice(0, 3).map((q, i) => (
-              <li key={q.id || i} className="text-xs text-zinc-400 truncate">
-                {i + 1}. {q.question}
-                {q.is_required && <span className="text-red-400 ml-1">*</span>}
+              <li key={q.id || i} className="flex items-start gap-2 text-xs text-zinc-300">
+                <span className="text-zinc-500 font-medium flex-shrink-0">{i + 1}.</span>
+                <span className="flex-1 min-w-0">
+                  <span className="truncate block">{q.question}</span>
+                  {q.is_required && (
+                    <span className="inline-flex items-center gap-1 mt-0.5 text-red-400">
+                      <Icon name="alert" size="xs" />
+                      Obrigatória
+                    </span>
+                  )}
+                </span>
               </li>
             ))}
             {template.questions.length > 3 && (
-              <li className="text-xs text-zinc-500">
-                +{template.questions.length - 3} mais...
+              <li className="text-xs text-zinc-500 pt-1">
+                +{template.questions.length - 3} mais perguntas...
               </li>
             )}
           </ul>
         </div>
       )}
 
-      <div className="flex items-center justify-between pt-3 border-t border-white/[0.06]">
-        {!isSystemTemplate ? (
-          <>
-            <button
-              type="button"
-              onClick={() => onToggleActive(template.id, !template.is_active)}
-              className="text-xs text-zinc-500 hover:text-zinc-300 transition-colors"
+      <div className="flex items-center justify-between pt-4 border-t border-white/[0.06]">
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => onToggleActive(template.id, !template.is_active)}
+          className="text-xs"
+        >
+          {template.is_active ? 'Desativar' : 'Ativar'}
+        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={() => onEdit(template)}
+            className="text-xs"
+          >
+            <Icon name="filetext" size="xs" className="mr-1" />
+            Editar
+          </Button>
+          {!isSystemTemplate && (
+            <Button
+              variant="danger"
+              size="sm"
+              onClick={() => onDelete(template.id)}
+              className="text-xs"
             >
-              {template.is_active ? 'Desativar' : 'Ativar'}
-            </button>
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={() => onEdit(template)}
-                className="text-xs text-violet-400 hover:text-violet-300 transition-colors"
-              >
-                Editar
-              </button>
-              <button
-                type="button"
-                onClick={() => onDelete(template.id)}
-                className="text-xs text-red-400 hover:text-red-300 transition-colors"
-              >
-                Excluir
-              </button>
-            </div>
-          </>
-        ) : (
-          <span className="text-xs text-zinc-600">
-            Templates do sistema não podem ser editados
-          </span>
-        )}
+              <Icon name="x-circle" size="xs" className="mr-1" />
+              Excluir
+            </Button>
+          )}
+        </div>
       </div>
-    </div>
+    </GlassCard>
   );
 }
 
@@ -700,12 +741,14 @@ export function BriefingsPageContent() {
       }
     >
       {/* Info Card */}
-      <GlassCard className="mb-6 p-4">
+      <GlassCard className="mb-6 p-4 bg-gradient-to-br from-violet-500/8 via-purple-500/5 to-indigo-500/8 border-violet-500/15">
         <div className="flex items-start gap-3">
-          <span className="text-2xl">📋</span>
+          <div className="p-2 rounded-lg bg-violet-500/20">
+            <Icon name="filetext" size="md" className="text-violet-400" />
+          </div>
           <div>
             <h3 className="font-medium text-white mb-1">Como funciona?</h3>
-            <p className="text-sm text-zinc-400">
+            <p className="text-sm text-zinc-400 leading-relaxed">
               Os briefings são questionários personalizados para cada nicho de cliente.
               Quando você criar um cliente de um determinado segmento (ex: Delivery),
               o briefing correspondente aparecerá automaticamente durante o cadastro.
@@ -718,16 +761,16 @@ export function BriefingsPageContent() {
       {/* Filtros */}
       <div className="flex flex-wrap items-center gap-4 mb-6">
         <div className="flex items-center gap-2">
-          <span className="text-xs text-zinc-500">Segmento:</span>
+          <span className="text-xs text-zinc-400">Segmento:</span>
           <select
             value={filterSegment}
             onChange={(e) => setFilterSegment(e.target.value)}
-            className="px-3 py-2 text-sm rounded-lg bg-white/[0.03] border border-white/[0.08] text-white focus:outline-none focus:border-violet-500/50"
+            className="px-3 py-2 text-sm rounded-lg bg-zinc-900/80 border border-zinc-700/50 text-white focus:outline-none focus:border-violet-500/50 focus:ring-1 focus:ring-violet-500/30 transition-colors cursor-pointer hover:border-zinc-600/70"
           >
-            <option value="all">Todos</option>
+            <option value="all" className="bg-zinc-900 text-white">Todos</option>
             {COMMON_SEGMENTS.map((seg) => (
-              <option key={seg.value} value={seg.value}>
-                {seg.icon} {seg.label}
+              <option key={seg.value} value={seg.value} className="bg-zinc-900 text-white">
+                {seg.label}
               </option>
             ))}
           </select>
@@ -767,9 +810,14 @@ export function BriefingsPageContent() {
             const segmentInfo = COMMON_SEGMENTS.find((s) => s.value === segment);
             return (
               <div key={segment}>
-                <h2 className="text-sm font-medium text-zinc-400 mb-4 flex items-center gap-2">
-                  {segmentInfo && <span>{segmentInfo.icon}</span>}
-                  {segmentInfo?.label || segment} ({segmentTemplates.length})
+                <h2 className="text-base font-semibold text-white mb-4 flex items-center gap-2">
+                  {segmentInfo && (
+                    <div className="p-1.5 rounded-lg bg-violet-500/10">
+                      <Icon name={segmentInfo.icon} size="sm" className="text-violet-400" />
+                    </div>
+                  )}
+                  <span>{segmentInfo?.label || segment}</span>
+                  <span className="text-sm text-zinc-500 font-normal">({segmentTemplates.length})</span>
                 </h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   {segmentTemplates.map((template) => (
