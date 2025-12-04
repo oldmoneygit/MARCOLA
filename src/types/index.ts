@@ -17,3 +17,5 @@ export * from './intelligence';
 export * from './audit';
 export * from './checklist';
 export * from './health-score';
+export * from './team';
+export * from './whatsapp';

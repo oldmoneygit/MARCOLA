@@ -15,6 +15,8 @@ import { ptBR } from 'date-fns/locale';
 
 import { cn } from '@/lib/utils';
 
+import { TeamMemberAvatar } from '@/components/team';
+
 import { CategoryBadge } from './CategoryBadge';
 import { ChecklistView } from './ChecklistView';
 import { PriorityBadge } from './PriorityBadge';
@@ -365,6 +367,20 @@ function TaskCard({
         <div className="flex items-center gap-2">
           <PriorityBadge priority={task.priority} size="sm" />
           <TaskStatusBadge status={task.status} size="sm" />
+          {/* Assignee indicator */}
+          {task.assignee && (
+            <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-white/5">
+              <TeamMemberAvatar
+                name={task.assignee.name}
+                avatarUrl={task.assignee.avatar_url}
+                color={task.assignee.color}
+                size="xs"
+              />
+              <span className="text-xs text-zinc-400 max-w-[80px] truncate">
+                {task.assignee.name.split(' ')[0]}
+              </span>
+            </div>
+          )}
         </div>
 
         <div className="flex items-center gap-3 text-xs">

@@ -20,6 +20,7 @@ export const APP_FULL_NAME = 'MARCOLA Gestor de Tráfegos';
 export const ROUTES = {
   HOME: '/',
   LOGIN: '/login',
+  REGISTER: '/register',
   DASHBOARD: '/dashboard',
   CLIENTS: '/clients',
   CLIENT_DETAIL: (id: string) => `/clients/${id}`,
@@ -29,6 +30,11 @@ export const ROUTES = {
   REPORTS: '/reports',
   ANALYSIS: '/analysis',
   FINANCIAL: '/financial',
+  TEAM: '/team',
+  WHATSAPP: '/whatsapp',
+  PROFILE: '/profile',
+  SETTINGS: '/settings',
+  INVITE: (token: string) => `/invite/${token}`,
 } as const;
 
 /**
@@ -41,7 +47,9 @@ export const NAV_ITEMS = [
   { id: 'calendar', label: 'Calendário', icon: 'Calendar', href: ROUTES.CALENDAR },
   { id: 'reports', label: 'Relatórios', icon: 'BarChart3', href: ROUTES.REPORTS },
   { id: 'analysis', label: 'Análise', icon: 'Brain', href: ROUTES.ANALYSIS },
-  { id: 'templates', label: 'Briefings', icon: 'FileText', href: ROUTES.TEMPLATES },
+  { id: 'templates', label: 'Templates', icon: 'LayoutTemplate', href: ROUTES.TEMPLATES },
+  { id: 'team', label: 'Equipe', icon: 'UsersRound', href: ROUTES.TEAM },
+  { id: 'whatsapp', label: 'WhatsApp', icon: 'MessageCircle', href: ROUTES.WHATSAPP },
   { id: 'financial', label: 'Financeiro', icon: 'Wallet', href: ROUTES.FINANCIAL },
 ] as const;
 

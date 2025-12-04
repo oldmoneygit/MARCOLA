@@ -6,3 +6,4 @@
 
 export { BriefingsPageContent } from './BriefingsPageContent';
 export { TemplatesPageContent } from './TemplatesPageContent';
+export { TemplateList } from './TemplateList';

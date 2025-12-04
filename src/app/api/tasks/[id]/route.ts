@@ -38,7 +38,8 @@ export async function GET(_request: NextRequest, context: RouteContext) {
       .select(`
         *,
         client:clients(id, name),
-        template:task_templates(id, title)
+        template:task_templates(id, title),
+        assignee:team_members!tasks_assigned_to_fkey(id, name, email, avatar_url, color, role)
       `)
       .eq('id', id)
       .eq('user_id', user.id)
@@ -100,6 +101,7 @@ export async function PUT(request: NextRequest, context: RouteContext) {
       due_time: 'due_time',
       priority: 'priority',
       status: 'status',
+      assigned_to: 'assigned_to',
       is_recurring: 'is_recurring',
       recurrence: 'recurrence',
       send_whatsapp: 'notify_client',
@@ -124,7 +126,8 @@ export async function PUT(request: NextRequest, context: RouteContext) {
       .select(`
         *,
         client:clients(id, name),
-        template:task_templates(id, title)
+        template:task_templates(id, title),
+        assignee:team_members!tasks_assigned_to_fkey(id, name, email, avatar_url, color, role)
       `)
       .single();
 

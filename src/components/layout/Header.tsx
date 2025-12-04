@@ -1,6 +1,6 @@
 /**
  * @file Header.tsx
- * @description Componente de header do dashboard
+ * @description Componente de header do dashboard com menu de usuário funcional
  * @module components/layout
  *
  * @example
@@ -12,8 +12,11 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
+import { useRouter } from 'next/navigation';
 
+import { useAuth } from '@/hooks';
+import { ROUTES } from '@/lib/constants';
 import { cn } from '@/lib/utils';
 
 interface HeaderProps {
@@ -37,14 +40,25 @@ interface UserMenuProps {
   /** Email do usuário */
   email?: string;
   /** URL do avatar */
-  avatarUrl?: string;
+  avatarUrl?: string | null;
+  /** Callback de logout */
+  onLogout?: () => void;
+  /** Se está fazendo logout */
+  isLoggingOut?: boolean;
 }
 
 /**
- * Menu de usuário com dropdown
+ * Menu de usuário com dropdown funcional
  */
-function UserMenu({ name = 'Usuário', email = 'usuario@email.com', avatarUrl }: UserMenuProps) {
+function UserMenu({
+  name = 'Usuário',
+  email = 'usuario@email.com',
+  avatarUrl,
+  onLogout,
+  isLoggingOut = false,
+}: UserMenuProps) {
   const [isOpen, setIsOpen] = useState(false);
+  const router = useRouter();
 
   const initials = name
     .split(' ')
@@ -52,6 +66,19 @@ function UserMenu({ name = 'Usuário', email = 'usuario@email.com', avatarUrl }:
     .slice(0, 2)
     .join('')
     .toUpperCase();
+
+  const handleNavigate = useCallback(
+    (route: string) => {
+      setIsOpen(false);
+      router.push(route);
+    },
+    [router]
+  );
+
+  const handleLogout = useCallback(() => {
+    setIsOpen(false);
+    onLogout?.();
+  }, [onLogout]);
 
   return (
     <div className="relative">
@@ -112,10 +139,7 @@ function UserMenu({ name = 'Usuário', email = 'usuario@email.com', avatarUrl }:
       {isOpen && (
         <>
           {/* Backdrop */}
-          <div
-            className="fixed inset-0 z-10"
-            onClick={() => setIsOpen(false)}
-          />
+          <div className="fixed inset-0 z-10" onClick={() => setIsOpen(false)} />
 
           {/* Menu */}
           <div
@@ -134,6 +158,7 @@ function UserMenu({ name = 'Usuário', email = 'usuario@email.com', avatarUrl }:
 
             <div className="py-1">
               <button
+                onClick={() => handleNavigate(ROUTES.PROFILE)}
                 className={cn(
                   'flex items-center gap-3 w-full px-4 py-2',
                   'text-sm text-zinc-300 hover:text-white',
@@ -152,6 +177,7 @@ function UserMenu({ name = 'Usuário', email = 'usuario@email.com', avatarUrl }:
               </button>
 
               <button
+                onClick={() => handleNavigate(ROUTES.SETTINGS)}
                 className={cn(
                   'flex items-center gap-3 w-full px-4 py-2',
                   'text-sm text-zinc-300 hover:text-white',
@@ -178,21 +204,42 @@ function UserMenu({ name = 'Usuário', email = 'usuario@email.com', avatarUrl }:
 
             <div className="border-t border-white/[0.08] py-1">
               <button
+                onClick={handleLogout}
+                disabled={isLoggingOut}
                 className={cn(
                   'flex items-center gap-3 w-full px-4 py-2',
                   'text-sm text-red-400 hover:text-red-300',
-                  'hover:bg-red-500/10 transition-colors'
+                  'hover:bg-red-500/10 transition-colors',
+                  isLoggingOut && 'opacity-50 cursor-not-allowed'
                 )}
               >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
-                  />
-                </svg>
-                Sair
+                {isLoggingOut ? (
+                  <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                    <circle
+                      className="opacity-25"
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      strokeWidth="4"
+                    />
+                    <path
+                      className="opacity-75"
+                      fill="currentColor"
+                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                    />
+                  </svg>
+                ) : (
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
+                    />
+                  </svg>
+                )}
+                {isLoggingOut ? 'Saindo...' : 'Sair'}
               </button>
             </div>
           </div>
@@ -213,6 +260,18 @@ function Header({
   onMenuClick,
   className,
 }: HeaderProps) {
+  const { profile, signOut, loading } = useAuth();
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
+
+  const handleLogout = useCallback(async () => {
+    setIsLoggingOut(true);
+    try {
+      await signOut();
+    } finally {
+      setIsLoggingOut(false);
+    }
+  }, [signOut]);
+
   return (
     <header
       className={cn(
@@ -237,12 +296,7 @@ function Header({
               )}
               aria-label="Abrir menu"
             >
-              <svg
-                className="w-6 h-6"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path
                   strokeLinecap="round"
                   strokeLinejoin="round"
@@ -256,9 +310,7 @@ function Header({
           {/* Title section */}
           <div>
             <h1 className="text-xl font-semibold text-white">{title}</h1>
-            {subtitle && (
-              <p className="text-sm text-zinc-400">{subtitle}</p>
-            )}
+            {subtitle && <p className="text-sm text-zinc-400">{subtitle}</p>}
           </div>
         </div>
 
@@ -277,12 +329,7 @@ function Header({
             )}
             aria-label="Notificações"
           >
-            <svg
-              className="w-5 h-5"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path
                 strokeLinecap="round"
                 strokeLinejoin="round"
@@ -292,11 +339,7 @@ function Header({
             </svg>
             {/* Notification badge */}
             <span
-              className={cn(
-                'absolute top-1.5 right-1.5',
-                'w-2 h-2 rounded-full',
-                'bg-violet-500'
-              )}
+              className={cn('absolute top-1.5 right-1.5', 'w-2 h-2 rounded-full', 'bg-violet-500')}
             />
           </button>
 
@@ -304,7 +347,13 @@ function Header({
           <div className="hidden sm:block w-px h-6 bg-white/[0.08]" />
 
           {/* User menu */}
-          <UserMenu />
+          <UserMenu
+            name={profile?.name}
+            email={profile?.email}
+            avatarUrl={profile?.avatarUrl}
+            onLogout={handleLogout}
+            isLoggingOut={isLoggingOut || loading}
+          />
         </div>
       </div>
     </header>

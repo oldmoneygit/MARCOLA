@@ -36,7 +36,8 @@ export async function GET() {
       .from('tasks')
       .select(`
         *,
-        client:clients(id, name)
+        client:clients(id, name),
+        assignee:team_members!tasks_assigned_to_fkey(id, name, email, avatar_url, color, role)
       `)
       .eq('user_id', user.id)
       .eq('due_date', today)
@@ -53,7 +54,8 @@ export async function GET() {
       .from('tasks')
       .select(`
         *,
-        client:clients(id, name)
+        client:clients(id, name),
+        assignee:team_members!tasks_assigned_to_fkey(id, name, email, avatar_url, color, role)
       `)
       .eq('user_id', user.id)
       .lt('due_date', today)

@@ -14,6 +14,7 @@ interface ApplyTemplatesBody {
   client_id: string;
   template_ids?: string[];
   use_segment_templates?: boolean;
+  apply_operational?: boolean;
 }
 
 /**
@@ -55,14 +56,26 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Cliente não encontrado' }, { status: 404 });
     }
 
-    let templates;
+    let templates: Array<{
+      id: string;
+      category?: string;
+      title: string;
+      description?: string;
+      default_days_offset?: number;
+      priority?: string;
+      is_recurring?: boolean;
+      recurrence?: string;
+      notify_client?: boolean;
+      notify_message?: string;
+      checklist?: unknown;
+    }> = [];
 
     if (body.template_ids && body.template_ids.length > 0) {
       // Buscar templates específicos
       const { data, error } = await supabase
         .from('task_templates')
         .select('*')
-        .eq('user_id', user.id)
+        .or(`user_id.eq.${user.id},is_system.eq.true`)
         .in('id', body.template_ids)
         .eq('is_active', true);
 
@@ -71,13 +84,29 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: 'Erro ao buscar templates' }, { status: 500 });
       }
 
-      templates = data;
+      templates = data || [];
+    } else if (body.apply_operational) {
+      // Buscar templates operacionais do sistema (is_system = true, category = 'operational')
+      const { data, error } = await supabase
+        .from('task_templates')
+        .select('*')
+        .eq('is_system', true)
+        .eq('category', 'operational')
+        .eq('is_active', true)
+        .order('order_index', { ascending: true });
+
+      if (error) {
+        console.error('[API] POST /api/tasks/apply-templates error (fetch operational templates):', error);
+        return NextResponse.json({ error: 'Erro ao buscar templates operacionais' }, { status: 500 });
+      }
+
+      templates = data || [];
     } else if (body.use_segment_templates) {
       // Buscar templates do segmento do cliente
       const { data, error } = await supabase
         .from('task_templates')
         .select('*')
-        .eq('user_id', user.id)
+        .or(`user_id.eq.${user.id},is_system.eq.true`)
         .eq('segment', client.segment)
         .eq('is_active', true);
 
@@ -86,10 +115,10 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: 'Erro ao buscar templates do segmento' }, { status: 500 });
       }
 
-      templates = data;
+      templates = data || [];
     } else {
       return NextResponse.json(
-        { error: 'Informe template_ids ou use_segment_templates: true' },
+        { error: 'Informe template_ids, use_segment_templates ou apply_operational' },
         { status: 400 }
       );
     }
@@ -108,15 +137,17 @@ export async function POST(request: NextRequest) {
         user_id: user.id,
         client_id: body.client_id,
         template_id: template.id,
+        category: template.category || 'custom',
         title: template.title,
         description: template.description,
+        checklist: template.checklist || [],
         due_date: dueDate.toISOString().split('T')[0],
-        priority: template.default_priority || 'medium',
+        priority: template.priority || 'medium',
         status: 'todo',
         is_recurring: template.is_recurring || false,
         recurrence: template.recurrence || null,
-        send_whatsapp: template.send_whatsapp || false,
-        whatsapp_message: template.whatsapp_template || null,
+        send_whatsapp: template.notify_client || false,
+        whatsapp_message: template.notify_message || null,
       };
     });
 

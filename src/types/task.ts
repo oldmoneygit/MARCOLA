@@ -80,6 +80,8 @@ export interface Task {
   notified_at: string | null;
   completed_at: string | null;
   completion_notes: string | null;
+  /** ID do membro da equipe atribuído */
+  assigned_to: string | null;
   created_at: string;
   updated_at: string;
   /** Relação com cliente (quando join) */
@@ -89,6 +91,15 @@ export interface Task {
     contact_phone: string | null;
     contact_name: string | null;
   };
+  /** Relação com membro atribuído (quando join) */
+  assignee?: {
+    id: string;
+    name: string;
+    email: string;
+    avatar_url: string | null;
+    color: string;
+    role: string;
+  } | null;
 }
 
 /**
@@ -125,6 +136,7 @@ export interface CreateTaskDTO {
   recurrence?: TaskRecurrence;
   send_whatsapp?: boolean;
   whatsapp_message?: string;
+  assigned_to?: string | null;
 }
 
 /**

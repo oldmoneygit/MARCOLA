@@ -1,6 +1,6 @@
 /**
  * @file FinancialPageContent.tsx
- * @description Conteúdo da página financeira
+ * @description Conteúdo da página financeira com integração WhatsApp
  * @module components/financial
  */
 
@@ -10,14 +10,15 @@ import { useCallback, useEffect, useState } from 'react';
 
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { Button, GlassCard, MetricCard, Skeleton } from '@/components/ui';
+import { SendWhatsAppModal } from '@/components/whatsapp/SendWhatsAppModal';
 import { useFinancial } from '@/hooks';
 
 import { PaymentFormModal } from './PaymentFormModal';
 import { PaymentsTable } from './PaymentsTable';
-import { ReminderModal } from './ReminderModal';
 
 import type { PaymentFormData } from './PaymentFormModal';
 import type { PaymentWithClient } from '@/types';
+import type { MessageTemplateType } from '@/types/whatsapp';
 
 interface ClientOption {
   id: string;
@@ -92,17 +93,22 @@ export function FinancialPageContent() {
     markAsPaid,
     createPayment,
     deletePayment,
-    generateReminder,
     generateMonthlyPayments,
   } = useFinancial();
 
-  const [reminderPayment, setReminderPayment] = useState<PaymentWithClient | null>(null);
-  const [isReminderModalOpen, setIsReminderModalOpen] = useState(false);
+  // Estados do formulário de pagamento
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
   const [clients, setClients] = useState<ClientOption[]>([]);
   const [isGenerating, setIsGenerating] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+
+  // Estados do WhatsApp
+  const [whatsappPayment, setWhatsappPayment] = useState<PaymentWithClient | null>(null);
+  const [isWhatsAppModalOpen, setIsWhatsAppModalOpen] = useState(false);
+  const [selectedPayments, setSelectedPayments] = useState<Set<string>>(new Set());
+  const [isBulkWhatsAppModalOpen, setIsBulkWhatsAppModalOpen] = useState(false);
+  const [bulkSendIndex, setBulkSendIndex] = useState(0);
 
   const monthOptions = generateMonthOptions();
 
@@ -135,20 +141,104 @@ export function FinancialPageContent() {
   }, [markAsPaid]);
 
   /**
-   * Handler para abrir modal de lembrete
+   * Determina o template padrão baseado no status do pagamento
    */
-  const handleOpenReminder = useCallback((payment: PaymentWithClient) => {
-    setReminderPayment(payment);
-    setIsReminderModalOpen(true);
+  const getDefaultTemplate = useCallback((payment: PaymentWithClient): MessageTemplateType => {
+    if (payment.status === 'overdue') {
+      return 'payment_overdue';
+    }
+    return 'payment_reminder';
   }, []);
 
   /**
-   * Handler para fechar modal de lembrete
+   * Calcula dias de atraso
    */
-  const handleCloseReminder = useCallback(() => {
-    setReminderPayment(null);
-    setIsReminderModalOpen(false);
+  const getDaysOverdue = useCallback((dueDate: string): number => {
+    const due = new Date(dueDate + 'T00:00:00');
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const diff = Math.floor((today.getTime() - due.getTime()) / (1000 * 60 * 60 * 24));
+    return Math.max(0, diff);
   }, []);
+
+  /**
+   * Handler para abrir WhatsApp modal para um pagamento
+   */
+  const handleOpenWhatsApp = useCallback((payment: PaymentWithClient) => {
+    setWhatsappPayment(payment);
+    setIsWhatsAppModalOpen(true);
+  }, []);
+
+  /**
+   * Handler para fechar WhatsApp modal
+   */
+  const handleCloseWhatsApp = useCallback(() => {
+    setWhatsappPayment(null);
+    setIsWhatsAppModalOpen(false);
+  }, []);
+
+  /**
+   * Handler para toggle de seleção de pagamento
+   */
+  const handleTogglePaymentSelection = useCallback((paymentId: string) => {
+    setSelectedPayments((prev) => {
+      const newSet = new Set(prev);
+      if (newSet.has(paymentId)) {
+        newSet.delete(paymentId);
+      } else {
+        newSet.add(paymentId);
+      }
+      return newSet;
+    });
+  }, []);
+
+  /**
+   * Handler para selecionar/deselecionar todos os pagamentos pendentes
+   */
+  const handleToggleSelectAll = useCallback(() => {
+    const pendingPayments = payments.filter((p) => p.status !== 'paid');
+    if (selectedPayments.size === pendingPayments.length) {
+      setSelectedPayments(new Set());
+    } else {
+      setSelectedPayments(new Set(pendingPayments.map((p) => p.id)));
+    }
+  }, [payments, selectedPayments.size]);
+
+  /**
+   * Handler para abrir bulk WhatsApp modal
+   */
+  const handleOpenBulkWhatsApp = useCallback(() => {
+    if (selectedPayments.size === 0) {
+      return;
+    }
+    setBulkSendIndex(0);
+    setIsBulkWhatsAppModalOpen(true);
+  }, [selectedPayments.size]);
+
+  /**
+   * Handler para envio em lote (próximo cliente)
+   */
+  const handleBulkNext = useCallback(() => {
+    const selectedArray = Array.from(selectedPayments);
+    if (bulkSendIndex < selectedArray.length - 1) {
+      setBulkSendIndex((prev) => prev + 1);
+    } else {
+      setIsBulkWhatsAppModalOpen(false);
+      setSelectedPayments(new Set());
+      setBulkSendIndex(0);
+      setSuccessMessage(`Mensagens enviadas para ${selectedArray.length} clientes!`);
+      setTimeout(() => setSuccessMessage(null), 3000);
+    }
+  }, [selectedPayments, bulkSendIndex]);
+
+  /**
+   * Obtém o pagamento atual para envio em lote
+   */
+  const getCurrentBulkPayment = useCallback((): PaymentWithClient | null => {
+    const selectedArray = Array.from(selectedPayments);
+    const paymentId = selectedArray[bulkSendIndex];
+    return payments.find((p) => p.id === paymentId) || null;
+  }, [selectedPayments, bulkSendIndex, payments]);
 
   /**
    * Handler para criar pagamento
@@ -332,18 +422,62 @@ export function FinancialPageContent() {
         <PaymentsTable
           payments={payments}
           onMarkAsPaid={handleMarkAsPaid}
-          onSendReminder={handleOpenReminder}
+          onSendReminder={handleOpenWhatsApp}
           onDelete={handleDeletePayment}
+          selectedPayments={selectedPayments}
+          onToggleSelection={handleTogglePaymentSelection}
+          onToggleSelectAll={handleToggleSelectAll}
+          onBulkWhatsApp={handleOpenBulkWhatsApp}
         />
       </GlassCard>
 
-      {/* Modal de Lembrete */}
-      <ReminderModal
-        isOpen={isReminderModalOpen}
-        onClose={handleCloseReminder}
-        payment={reminderPayment}
-        onGenerateMessage={generateReminder}
-      />
+      {/* Modal de WhatsApp Individual */}
+      {whatsappPayment && (
+        <SendWhatsAppModal
+          isOpen={isWhatsAppModalOpen}
+          onClose={handleCloseWhatsApp}
+          clientId={whatsappPayment.client_id}
+          clientName={whatsappPayment.client?.name}
+          clientPhone={whatsappPayment.client?.contact_phone || ''}
+          defaultTemplate={getDefaultTemplate(whatsappPayment)}
+          defaultVariables={{
+            nome: whatsappPayment.client?.name || '',
+            valor: new Intl.NumberFormat('pt-BR', { style: 'decimal', minimumFractionDigits: 2 }).format(whatsappPayment.amount),
+            data_vencimento: new Date(whatsappPayment.due_date + 'T00:00:00').toLocaleDateString('pt-BR'),
+            dias_atraso: getDaysOverdue(whatsappPayment.due_date).toString(),
+          }}
+          onSuccess={handleCloseWhatsApp}
+        />
+      )}
+
+      {/* Modal de WhatsApp em Lote */}
+      {(() => {
+        const bulkPayment = getCurrentBulkPayment();
+        if (!isBulkWhatsAppModalOpen || !bulkPayment) {
+          return null;
+        }
+        return (
+          <SendWhatsAppModal
+            isOpen={isBulkWhatsAppModalOpen}
+            onClose={() => {
+              setIsBulkWhatsAppModalOpen(false);
+              setSelectedPayments(new Set());
+              setBulkSendIndex(0);
+            }}
+            clientId={bulkPayment.client_id}
+            clientName={`${bulkPayment.client?.name} (${bulkSendIndex + 1}/${selectedPayments.size})`}
+            clientPhone={bulkPayment.client?.contact_phone || ''}
+            defaultTemplate={getDefaultTemplate(bulkPayment)}
+            defaultVariables={{
+              nome: bulkPayment.client?.name || '',
+              valor: new Intl.NumberFormat('pt-BR', { style: 'decimal', minimumFractionDigits: 2 }).format(bulkPayment.amount),
+              data_vencimento: new Date(bulkPayment.due_date + 'T00:00:00').toLocaleDateString('pt-BR'),
+              dias_atraso: getDaysOverdue(bulkPayment.due_date).toString(),
+            }}
+            onSuccess={handleBulkNext}
+          />
+        );
+      })()}
 
       {/* Modal de Novo Pagamento */}
       <PaymentFormModal

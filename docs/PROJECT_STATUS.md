@@ -2,7 +2,7 @@
 
 > **Documento vivo** - Atualizado sempre que novas features são implementadas ou decisões técnicas importantes são tomadas. Use este documento para contextualizar o Claude Chat sobre o estado atual do projeto.
 
-**Última atualização:** 2024-12-04
+**Última atualização:** 2024-12-04 (v0.6.0)
 
 ---
 
@@ -57,6 +57,8 @@
 | Análise/Sugestões | ✅ Completo | Detecção de fadiga, oportunidades, IA |
 | Financeiro | ✅ Completo | Pagamentos, lembretes WhatsApp |
 | Inteligência | ✅ Completo | Knowledge Base, sugestões personalizadas, ofertas sazonais |
+| Equipe | ✅ Completo | Membros, convites por email, permissões granulares |
+| **WhatsApp** | ✅ Completo | Integração Z-API, templates, histórico, envio direto |
 
 ### Módulos Pendentes
 
@@ -70,6 +72,307 @@
 ---
 
 ## 🆕 Atualizações Recentes
+
+### v0.6.0 - Integração WhatsApp via Z-API (2024-12-04)
+
+#### 1. Integração Completa com Z-API
+
+Sistema completo de envio de mensagens WhatsApp usando a plataforma Z-API.
+
+**Funcionalidades:**
+
+- Envio de mensagens de texto para clientes
+- 6 templates pré-definidos (pagamento, tarefas, relatórios)
+- Mensagens personalizadas (custom)
+- Modal com fluxo intuitivo (Selecionar → Compor → Enviar)
+- Edição de telefone inline com salvamento no banco
+- Histórico de mensagens enviadas (tabela `whatsapp_logs`)
+- Verificação de status da conexão
+
+**Arquivos criados:**
+
+- `src/app/api/whatsapp/send/route.ts` - API de envio
+- `src/app/api/whatsapp/status/route.ts` - Status da conexão
+- `src/app/api/whatsapp/templates/route.ts` - Listar templates
+- `src/app/api/whatsapp/history/route.ts` - Histórico de mensagens
+- `src/app/api/whatsapp/webhook/route.ts` - Receber webhooks
+- `src/components/whatsapp/SendWhatsAppModal.tsx` - Modal de envio
+- `src/components/whatsapp/index.ts` - Exports
+- `src/hooks/useWhatsApp.ts` - Hook para operações
+- `src/lib/whatsapp/zapi-service.ts` - Classe de serviço Z-API
+- `src/lib/whatsapp/message-templates.ts` - Templates de mensagem
+- `src/lib/whatsapp/index.ts` - Exports
+- `src/types/whatsapp.ts` - Tipos TypeScript
+- `docs/WHATSAPP_ZAPI_INTEGRATION.md` - Documentação completa
+
+**Arquivos modificados:**
+
+- `src/components/clients/ClientCard.tsx` - Botão WhatsApp + Modal integrado
+- `.env.local` - Variáveis de ambiente Z-API
+
+**Configuração necessária:**
+
+```env
+ZAPI_INSTANCE_ID=seu_instance_id
+ZAPI_TOKEN=seu_token
+ZAPI_CLIENT_TOKEN=seu_client_token
+```
+
+#### 2. Templates de Mensagem
+
+6 templates pré-definidos para diferentes cenários:
+
+| Template | Uso |
+|----------|-----|
+| `payment_reminder` | Lembrete de pagamento próximo |
+| `payment_overdue` | Pagamento em atraso |
+| `task_completed` | Notificar tarefa concluída |
+| `task_assigned` | Nova tarefa atribuída |
+| `report_ready` | Relatório disponível |
+| `custom` | Mensagem personalizada |
+
+#### 3. Modal com Portal
+
+O modal de WhatsApp usa `createPortal` para renderizar fora da hierarquia DOM, evitando problemas de z-index e overflow.
+
+**Características:**
+
+- Renderiza no `document.body`
+- Z-index 9999
+- Backdrop com blur
+- Fluxo em etapas: select → compose → success
+- Validação de variáveis obrigatórias
+
+#### 4. Migrações de Banco de Dados
+
+**Tabela criada:**
+
+- `whatsapp_logs` - Histórico de mensagens enviadas
+
+**Campos:**
+
+- `id`, `user_id`, `client_id`, `phone`, `message`, `template_type`
+- `zapi_message_id`, `status`, `error`, `sent_at`, `delivered_at`, `read_at`
+
+---
+
+### v0.5.0 - Sistema de Equipe e Permissões (2024-12-04)
+
+#### 1. Sistema de Gestão de Equipe Completo
+
+Novo módulo que permite ao owner adicionar membros à sua equipe com diferentes níveis de acesso.
+
+**Funcionalidades:**
+
+- CRUD completo de membros da equipe
+- Funções (roles): Admin, Manager, Member, Viewer
+- Especialidades configuráveis (criativos, copywriting, gestão de campanhas, etc.)
+- Avatar com iniciais e cor personalizada
+- Ativação/desativação de membros
+
+**Arquivos criados:**
+
+- `src/app/(dashboard)/team/page.tsx` - Página de equipe
+- `src/app/api/team/route.ts` - API CRUD de membros
+- `src/components/team/TeamPageContent.tsx` - Conteúdo principal
+- `src/components/team/TeamMemberCard.tsx` - Card de membro
+- `src/components/team/TeamMemberModal.tsx` - Modal criar/editar
+- `src/components/team/TeamMemberAvatar.tsx` - Avatar
+- `src/hooks/useTeam.ts` - Hook de gestão
+- `src/types/team.ts` - Tipos e constantes
+
+#### 2. Sistema de Convites por Email
+
+Sistema completo de convites que permite membros criarem conta e acessarem a plataforma.
+
+**Funcionalidades:**
+
+- Geração de token único por convite
+- Envio de email via Resend
+- Página de aceite de convite
+- Criação automática de conta
+- Vinculação de user_id ao team_member
+- Reenvio de convites expirados
+
+**Fluxo:**
+
+```text
+Owner cria membro → Envia convite → Email com link →
+Membro acessa link → Cria senha → Conta ativada
+```
+
+**Arquivos criados:**
+
+- `src/app/invite/[token]/page.tsx` - Página de convite
+- `src/app/api/invitations/route.ts` - Lista/cria convites
+- `src/app/api/invitations/[token]/route.ts` - Busca/cancela
+- `src/app/api/invitations/resend/route.ts` - Reenvia convite
+- `src/app/api/invitations/accept/route.ts` - Aceita convite
+- `src/components/invite/AcceptInvitePage.tsx` - UI de aceite
+- `src/lib/email.ts` - Serviço de email (Resend)
+
+**Configuração necessária:**
+
+```env
+RESEND_API_KEY=re_xxxxxxxxxxxxx
+RESEND_FROM_EMAIL=convites@seudominio.com
+```
+
+#### 3. Sistema de Permissões Granulares
+
+Controle de acesso baseado em permissões que filtra automaticamente a navegação.
+
+**Permissões disponíveis:**
+
+| Permissão | Descrição |
+|-----------|-----------|
+| `can_view_clients` | Ver lista de clientes |
+| `can_edit_clients` | Editar dados de clientes |
+| `can_view_reports` | Ver relatórios |
+| `can_edit_reports` | Editar/importar relatórios |
+| `can_view_financial` | Ver dados financeiros |
+| `can_manage_tasks` | Gerenciar tarefas |
+| `can_assign_tasks` | Atribuir tarefas a outros |
+
+**Hook `useCurrentUser`:**
+
+Novo hook que identifica se o usuário é owner ou team member e fornece suas permissões.
+
+```typescript
+const { data, hasPermission, canAccessRoute } = useCurrentUser();
+
+if (data?.isOwner) { /* acesso total */ }
+if (hasPermission('can_edit_clients')) { /* pode editar */ }
+if (canAccessRoute('financial')) { /* pode ver /financial */ }
+```
+
+**Arquivos criados:**
+
+- `src/hooks/useCurrentUser.ts` - Hook de identificação
+
+**Arquivos modificados:**
+
+- `src/components/layout/Sidebar.tsx` - Filtra navegação por permissões
+- `src/components/team/TeamPageContent.tsx` - Usa DashboardLayout
+
+#### 4. Migrações de Banco de Dados
+
+**Tabelas criadas:**
+
+- `team_members` - Membros da equipe
+- `team_invitations` - Convites pendentes/aceitos
+
+**Políticas RLS:**
+
+- `team_members`: Owner gerencia, membro vê seus dados, público vê membros com convite pendente
+- `team_invitations`: Owner gerencia, público pode ler por token
+
+**Funções PostgreSQL:**
+
+- `generate_invitation_token()` - Gera token único
+- `accept_team_invitation()` - Processa aceite de convite
+
+#### 5. Documentação
+
+**Arquivo criado:**
+
+- `docs/TEAM_SYSTEM.md` - Documentação completa do sistema de equipe
+
+---
+
+### v0.4.0 - Task Quick Actions & Health Score System (2024-12-04)
+
+#### 1. Sistema de Ações Rápidas Contextuais (TaskQuickActions)
+
+Novo sistema que detecta automaticamente o tipo de tarefa baseado em keywords no título e exibe botões de ação relevantes.
+
+**Tipos detectados e ações:**
+
+| Tipo | Ações Exibidas |
+|------|----------------|
+| criativos | Ads Manager, Google Drive |
+| anuncios | Ads Manager, Google Ads |
+| reuniao | Agendar (calendário), WhatsApp/Email |
+| analise | Relatórios, Ads Manager |
+| social | Instagram, Google Drive |
+| financeiro | WhatsApp (lembrete), Email |
+
+**Integrado em:**
+
+- `TaskCard` - Exibe ações no corpo do card
+- `TaskList` - Propaga dados do cliente
+- `ClientCard` - Ações inline nas tarefas expandidas
+- `TasksPageContent` - Suporte a múltiplos clientes via Map
+- `ClientDetailContent` - Passa dados do cliente atual
+
+**Arquivos criados:**
+
+- `src/components/tasks/TaskQuickActions.tsx` - Componente principal + `detectTaskType()`
+
+**Arquivos modificados:**
+
+- `src/components/tasks/TaskCard.tsx` - Props: `clientData`, `showQuickActions`, `onCreateCalendarEvent`
+- `src/components/tasks/TaskList.tsx` - Props: `clientData`, `clientsMap`, `showQuickActions`
+- `src/components/tasks/TasksPageContent.tsx` - Mapa de clientes para ações rápidas
+- `src/components/tasks/index.ts` - Exports atualizados
+- `src/components/clients/ClientCard.tsx` - TaskQuickActions nas tarefas expandidas
+- `src/components/clients/ClientDetailContent.tsx` - ClientData para TaskList
+
+#### 2. Sistema de Health Score (Saúde do Cliente)
+
+Sistema de pontuação que avalia a "saúde" da gestão de cada cliente baseado em múltiplos fatores.
+
+**Fatores avaliados (0-100):**
+
+- Tarefas concluídas vs pendentes
+- Relatórios importados recentemente
+- Dados do briefing preenchidos
+- Frequência de atividade
+- Alertas pendentes
+
+**Arquivos criados:**
+
+- `src/components/clients/HealthScoreCard.tsx` - Card visual com score e breakdown
+- `src/hooks/useHealthScore.ts` - Hook para buscar/calcular score
+- `src/lib/health-score/calculator.ts` - Lógica de cálculo
+- `src/lib/health-score/index.ts` - Exports
+- `src/app/api/clients/[id]/health-score/route.ts` - API endpoint
+
+#### 3. Modal de Tarefa a partir de Template (AddTaskFromTemplateModal)
+
+Modal que permite criar tarefas diretamente de templates existentes.
+
+**Funcionalidades:**
+
+- Lista templates operacionais e do segmento do cliente
+- Pré-preenche campos do formulário
+- Permite ajustes antes de criar
+- Vincula tarefa ao template original
+
+**Arquivo criado:**
+
+- `src/components/tasks/AddTaskFromTemplateModal.tsx`
+
+#### 4. Substituição de Emojis por Ícones Lucide
+
+Refatoração visual para usar ícones SVG consistentes em vez de emojis.
+
+**Componentes afetados:**
+
+- `Icon.tsx` - Novo componente centralizado
+- `StatusBadge.tsx` - Ícones em vez de emojis
+- `ContentStatusBadge.tsx` - Atualizado
+- `ContentTypeBadge.tsx` - Atualizado
+- `PriorityBadge.tsx` - Atualizado
+- `TaskStatusBadge.tsx` - Atualizado
+
+**Benefícios:**
+
+- Consistência visual
+- Melhor renderização cross-platform
+- Cores personalizáveis via CSS
+
+---
 
 ### v0.3.0 - Rebranding & UI Refinements (2024-12-04)
 
@@ -243,16 +546,18 @@
 **Complexidade:** Baixa
 **Dependências:** Calendly API ou Embed
 
-#### 5. WhatsApp Business API
-**Objetivo:** Envio automatizado de mensagens
+#### 5. ~~WhatsApp Business API~~ ✅ IMPLEMENTADO (v0.6.0)
 
-**Funcionalidades:**
-- Lembretes de pagamento automáticos
-- Notificações de tarefas
-- Templates de mensagem
+**Status:** Implementado via Z-API
 
-**Complexidade:** Alta
-**Dependências:** WhatsApp Business API, Templates aprovados
+**Funcionalidades entregues:**
+- ✅ Envio de mensagens para clientes
+- ✅ 6 templates pré-definidos
+- ✅ Mensagens personalizadas
+- ✅ Histórico de mensagens
+- ✅ Modal integrado no ClientCard
+
+**Documentação:** `docs/WHATSAPP_ZAPI_INTEGRATION.md`
 
 ### Prioridade Baixa
 

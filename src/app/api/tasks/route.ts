@@ -22,6 +22,7 @@ import type { NextRequest } from 'next/server';
  * - client_id: Filtrar por cliente
  * - status: Filtrar por status (todo, doing, done, cancelled)
  * - priority: Filtrar por prioridade
+ * - assigned_to: Filtrar por assignee
  * - from_date: Data inicial
  * - to_date: Data final
  */
@@ -42,6 +43,7 @@ export async function GET(request: NextRequest) {
     const clientId = searchParams.get('client_id');
     const status = searchParams.get('status');
     const priority = searchParams.get('priority');
+    const assignedTo = searchParams.get('assigned_to');
     const fromDate = searchParams.get('from_date');
     const toDate = searchParams.get('to_date');
 
@@ -50,7 +52,8 @@ export async function GET(request: NextRequest) {
       .select(`
         *,
         client:clients(id, name),
-        template:task_templates(id, title)
+        template:task_templates(id, title),
+        assignee:team_members!tasks_assigned_to_fkey(id, name, email, avatar_url, color, role)
       `)
       .eq('user_id', user.id);
 
@@ -63,6 +66,13 @@ export async function GET(request: NextRequest) {
     }
     if (priority) {
       query = query.eq('priority', priority);
+    }
+    if (assignedTo) {
+      if (assignedTo === 'unassigned') {
+        query = query.is('assigned_to', null);
+      } else {
+        query = query.eq('assigned_to', assignedTo);
+      }
     }
     if (fromDate) {
       query = query.gte('due_date', fromDate);
@@ -130,6 +140,7 @@ export async function POST(request: NextRequest) {
         user_id: user.id,
         client_id: body.client_id,
         template_id: body.template_id || null,
+        assigned_to: body.assigned_to || null,
         title: body.title,
         description: body.description || null,
         due_date: body.due_date,
@@ -144,7 +155,8 @@ export async function POST(request: NextRequest) {
       .select(`
         *,
         client:clients(id, name),
-        template:task_templates(id, title)
+        template:task_templates(id, title),
+        assignee:team_members!tasks_assigned_to_fkey(id, name, email, avatar_url, color, role)
       `)
       .single();
 

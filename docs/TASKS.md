@@ -6,10 +6,44 @@
 
 O módulo de Tasks do TrafficHub implementa um sistema completo de gerenciamento de tarefas com:
 
-1. **Onboarding por Nicho** - Templates de tarefas pré-definidas por segmento de cliente
-2. **Tasks Organizadas** - Visão diária, prioridades, recorrências
-3. **Follow-up Automático** - Notificação via WhatsApp ao concluir tarefas
-4. **Notas do Cliente** - Histórico de observações e acompanhamento
+1. **Templates Operacionais** - Tarefas padrão do gestor de tráfego (aplica-se a TODOS os clientes)
+2. **Templates por Nicho** - Tarefas específicas por segmento de cliente
+3. **Tasks Organizadas** - Visão diária, prioridades, recorrências
+4. **Follow-up Automático** - Notificação via WhatsApp ao concluir tarefas
+5. **Notas do Cliente** - Histórico de observações e acompanhamento
+
+### Dois Tipos de Templates
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                     SISTEMA DE TEMPLATES                        │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│  📊 TEMPLATES OPERACIONAIS (categoria: 'operational')           │
+│  ├── Aplica-se a TODOS os clientes                              │
+│  ├── São tarefas do GESTOR (não do cliente)                     │
+│  └── Garantem padrão de excelência na gestão                    │
+│                                                                 │
+│      Diárias → Monitorar KPIs, verificar reprovações            │
+│      3 dias  → Otimizar criativos, pausar CTR baixo             │
+│      Semanal → Relatório, testar público novo                   │
+│      Quinzenal → Deep analysis, análise concorrência            │
+│      Mensal → Reunião estratégica, auditoria completa           │
+│                                                                 │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│  🏷️ TEMPLATES POR NICHO (categoria: 'niche')                    │
+│  ├── Aplica-se conforme segmento do cliente                     │
+│  ├── São tarefas específicas do negócio                         │
+│  └── Personalizadas por tipo de cliente                         │
+│                                                                 │
+│      Fitness → Campanha aulas experimentais, desafios           │
+│      Delivery → Atualizar cardápio, fotos de pratos             │
+│      E-commerce → Remarketing carrinho, catálogo                │
+│      Clínica → Campanha agendamentos, depoimentos               │
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
+```
 
 ---
 
@@ -22,6 +56,8 @@ O módulo de Tasks do TrafficHub implementa um sistema completo de gerenciamento
 | Cliente não sabe o status | Follow-up automático WhatsApp |
 | Cada cliente começa do zero | Templates por nicho prontos |
 | Tarefas sem prioridade clara | Sistema de prioridades visual |
+| Gestão inconsistente | Templates operacionais padronizam |
+| Esquece de otimizar a cada 3 dias | Recorrência "every_3_days" |
 
 ---
 
@@ -29,28 +65,44 @@ O módulo de Tasks do TrafficHub implementa um sistema completo de gerenciamento
 
 ### Tabela: `task_templates`
 
-Templates de tarefas padrão por segmento/nicho.
+Templates de tarefas (operacionais e por nicho).
 
 ```sql
 CREATE TABLE task_templates (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
-  segment TEXT NOT NULL,
+  
+  -- Categorização
+  category TEXT NOT NULL DEFAULT 'niche' CHECK (category IN ('operational', 'niche')),
+  segment TEXT, -- NULL para templates operacionais, preenchido para nicho
+  
+  -- Conteúdo
   title TEXT NOT NULL,
   description TEXT,
-  recurrence TEXT CHECK (recurrence IN ('daily', 'weekly', 'biweekly', 'monthly')),
+  checklist JSONB DEFAULT '[]', -- Lista de subtarefas/checklist
+  
+  -- Recorrência
+  recurrence TEXT CHECK (recurrence IN ('daily', 'every_3_days', 'weekly', 'biweekly', 'monthly')),
+  
+  -- Prioridade e notificação
   priority TEXT NOT NULL DEFAULT 'medium' CHECK (priority IN ('urgent', 'high', 'medium', 'low')),
   notify_client BOOLEAN DEFAULT false,
   notify_message TEXT,
+  
+  -- Organização
   order_index INTEGER DEFAULT 0,
   is_active BOOLEAN DEFAULT true,
+  is_system BOOLEAN DEFAULT false, -- true = template padrão do sistema (não pode deletar)
+  
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
 -- Índices
+CREATE INDEX idx_task_templates_category ON task_templates(category);
 CREATE INDEX idx_task_templates_segment ON task_templates(segment);
 CREATE INDEX idx_task_templates_user ON task_templates(user_id);
+CREATE INDEX idx_task_templates_system ON task_templates(is_system);
 ```
 
 ### Tabela: `tasks`
@@ -63,19 +115,37 @@ CREATE TABLE tasks (
   client_id UUID REFERENCES clients(id) ON DELETE CASCADE,
   user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
   template_id UUID REFERENCES task_templates(id) ON DELETE SET NULL,
+  
+  -- Categorização (herdado do template ou manual)
+  category TEXT NOT NULL DEFAULT 'niche' CHECK (category IN ('operational', 'niche', 'custom')),
+  
+  -- Conteúdo
   title TEXT NOT NULL,
   description TEXT,
+  checklist JSONB DEFAULT '[]', -- Lista de subtarefas com status
+  
+  -- Datas
   due_date DATE NOT NULL,
   due_time TIME,
+  
+  -- Status e prioridade
   priority TEXT NOT NULL DEFAULT 'medium' CHECK (priority IN ('urgent', 'high', 'medium', 'low')),
   status TEXT NOT NULL DEFAULT 'todo' CHECK (status IN ('todo', 'doing', 'done', 'cancelled')),
+  
+  -- Recorrência
   is_recurring BOOLEAN DEFAULT false,
-  recurrence TEXT CHECK (recurrence IN ('daily', 'weekly', 'biweekly', 'monthly')),
+  recurrence TEXT CHECK (recurrence IN ('daily', 'every_3_days', 'weekly', 'biweekly', 'monthly')),
   next_recurrence_date DATE,
+  
+  -- Notificação
   notify_client BOOLEAN DEFAULT false,
   notify_message TEXT,
   notified_at TIMESTAMPTZ,
+  
+  -- Conclusão
   completed_at TIMESTAMPTZ,
+  completion_notes TEXT, -- Notas ao completar
+  
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
@@ -86,6 +156,8 @@ CREATE INDEX idx_tasks_user ON tasks(user_id);
 CREATE INDEX idx_tasks_due_date ON tasks(due_date);
 CREATE INDEX idx_tasks_status ON tasks(status);
 CREATE INDEX idx_tasks_priority ON tasks(priority);
+CREATE INDEX idx_tasks_category ON tasks(category);
+CREATE INDEX idx_tasks_recurrence ON tasks(next_recurrence_date) WHERE is_recurring = true;
 ```
 
 ### Tabela: `client_notes`
@@ -248,19 +320,214 @@ export interface CreateNoteDTO {
 
 ```
 src/components/tasks/
-├── TaskCard.tsx           # Card individual de tarefa
-├── TaskList.tsx           # Lista de tarefas (filtrada)
-├── TaskForm.tsx           # Formulário criar/editar tarefa
-├── TaskModal.tsx          # Modal de detalhes da tarefa
-├── TodayTasks.tsx         # Widget "Tarefas de Hoje"
-├── PriorityBadge.tsx      # Badge de prioridade colorido
-├── RecurrenceBadge.tsx    # Badge de recorrência
-├── TemplateSelector.tsx   # Seletor de templates no onboarding
-├── TemplateManager.tsx    # Gerenciador de templates
-├── ClientNotes.tsx        # Seção de notas do cliente
-├── NoteCard.tsx           # Card individual de nota
-├── WhatsAppNotify.tsx     # Modal de notificação WhatsApp
+├── TaskCard.tsx              # Card individual de tarefa com ações rápidas
+├── TaskList.tsx              # Lista de tarefas (filtrada) com suporte a clientsMap
+├── TaskForm.tsx              # Formulário criar/editar tarefa
+├── TaskModal.tsx             # Modal de detalhes da tarefa
+├── TodayTasks.tsx            # Widget "Tarefas de Hoje"
+├── PriorityBadge.tsx         # Badge de prioridade colorido
+├── TaskStatusBadge.tsx       # Badge de status da tarefa
+├── RecurrenceBadge.tsx       # Badge de recorrência
+├── TaskQuickActions.tsx      # ⭐ NOVO: Ações rápidas contextuais
+├── AddTaskFromTemplateModal.tsx  # ⭐ NOVO: Modal para criar tarefa de template
+├── TemplateSelector.tsx      # Seletor de templates no onboarding
+├── TemplateManager.tsx       # Gerenciador de templates
+├── ClientNotes.tsx           # Seção de notas do cliente
+├── NoteCard.tsx              # Card individual de nota
+├── WhatsAppNotify.tsx        # Modal de notificação WhatsApp
 └── index.ts
+```
+
+---
+
+## ⭐ Sistema de Ações Rápidas Contextuais (TaskQuickActions)
+
+### Visão Geral
+
+O sistema de ações rápidas detecta automaticamente o tipo de tarefa baseado em keywords no título e exibe botões de ação relevantes que aceleram o workflow do gestor.
+
+### Tipos de Tarefa Detectados
+
+| Tipo | Keywords | Ações Rápidas |
+|------|----------|---------------|
+| **criativos** | criativo, captação, gravação, foto, video, design, arte, banner, story, reels | Ads Manager, Google Drive |
+| **anuncios** | anúncio, campanha, ads, tráfego, performance, conversão, público, remarketing | Ads Manager, Google Ads |
+| **reuniao** | reunião, alinhamento, call, meeting, kickoff, onboarding, feedback | Agendar (calendário), WhatsApp/Email |
+| **analise** | análise, auditoria, relatório, métricas, funil, churn, cac, ltv, roas | Relatórios, Ads Manager |
+| **social** | instagram, facebook, tiktok, stories, feed, post, engajamento | Instagram, Google Drive |
+| **financeiro** | cobrança, pagamento, fatura, nota fiscal, boleto, pix | WhatsApp (lembrete), Email |
+
+### Interface ClientData
+
+```typescript
+interface ClientData {
+  id: string;
+  name: string;
+  contact_phone?: string | null;
+  contact_email?: string | null;
+  contact_name?: string | null;
+  drive_url?: string | null;
+  ads_account_url?: string | null;
+  google_ads_account_url?: string | null;
+  instagram_url?: string | null;
+  credentials?: ClientCredential[];
+}
+```
+
+### Uso do Componente
+
+```tsx
+import { TaskQuickActions, detectTaskType } from '@/components/tasks';
+
+// Em um TaskCard
+<TaskQuickActions
+  task={task}
+  clientData={clientData}
+  onCreateCalendarEvent={handleCreateCalendarEvent}
+  size="sm"
+  className="mt-2"
+/>
+
+// Verificar se tarefa tem tipo detectável
+{detectTaskType(task.title) && (
+  <TaskQuickActions task={task} clientData={clientData} />
+)}
+```
+
+### Props do TaskQuickActions
+
+| Prop | Tipo | Descrição |
+|------|------|-----------|
+| `task` | `Task` | Tarefa para a qual exibir ações |
+| `clientData` | `ClientData \| null` | Dados do cliente para links contextuais |
+| `onCreateCalendarEvent` | `(task: Task) => void` | Callback para criar evento no calendário |
+| `size` | `'sm' \| 'md'` | Tamanho dos botões (default: 'sm') |
+| `className` | `string` | Classes CSS adicionais |
+
+### Fluxo de Detecção
+
+```
+1. Título da tarefa → normalizado (lowercase, sem acentos)
+2. Busca keywords em ordem de prioridade:
+   reuniao → criativos → anuncios → analise → social → financeiro
+3. Primeiro match retorna o tipo
+4. Ações são geradas baseadas no tipo + dados disponíveis do cliente
+```
+
+### Integração com Componentes
+
+O TaskQuickActions está integrado em:
+
+1. **TaskCard** - Aparece no corpo do card (quando `showQuickActions={true}`)
+2. **TaskList** - Propaga clientData para cada TaskCard
+3. **ClientCard** - Exibe ações rápidas inline nas tarefas expandidas
+4. **TasksPageContent** - Usa clientsMap para múltiplos clientes
+5. **ClientDetailContent** - Passa clientData do cliente atual
+
+---
+
+## ⭐ Modal de Criação de Tarefa a partir de Template
+
+### AddTaskFromTemplateModal
+
+Modal que permite criar uma tarefa diretamente a partir de um template existente, pré-preenchendo os campos.
+
+```tsx
+import { AddTaskFromTemplateModal } from '@/components/tasks';
+
+<AddTaskFromTemplateModal
+  isOpen={showTemplateModal}
+  onClose={() => setShowTemplateModal(false)}
+  clientId={client.id}
+  onTaskCreated={(task) => {
+    // Tarefa criada com sucesso
+    refetchTasks();
+  }}
+/>
+```
+
+### Fluxo do Modal
+
+1. Carrega templates disponíveis (operacionais + do segmento do cliente)
+2. Usuário seleciona um template
+3. Campos são pré-preenchidos (título, descrição, prioridade, recorrência)
+4. Usuário pode ajustar e definir data de vencimento
+5. Ao submeter, cria a tarefa vinculada ao template
+
+---
+
+## 🔧 Atualizações nos Componentes Existentes
+
+### TaskCard - Atualizado
+
+Novas props adicionadas:
+
+```typescript
+interface TaskCardProps {
+  task: Task;
+  clientData?: ClientData | null;           // ⭐ NOVO
+  onStatusChange?: (id: string, status: TaskStatus) => Promise<void>;
+  onClick?: (task: Task) => void;
+  onDelete?: (id: string) => Promise<void>;
+  onChecklistUpdate?: (id: string, checklist: ChecklistItem[]) => Promise<void>;
+  onCreateCalendarEvent?: (task: Task) => void;  // ⭐ NOVO
+  showClient?: boolean;
+  showQuickActions?: boolean;               // ⭐ NOVO (default: true)
+  compact?: boolean;
+}
+```
+
+### TaskList - Atualizado
+
+Novas props para suporte a múltiplos clientes:
+
+```typescript
+interface TaskListProps {
+  tasks: Task[];
+  clientData?: ClientData | null;           // Cliente único
+  clientsMap?: Map<string, ClientData>;     // ⭐ NOVO: Múltiplos clientes
+  onStatusChange?: (taskId: string, newStatus: TaskStatus) => Promise<void>;
+  onTaskClick?: (task: Task) => void;
+  onDelete?: (taskId: string) => Promise<void>;
+  onChecklistUpdate?: (taskId: string, checklist: ChecklistItem[]) => Promise<void>;
+  onCreateCalendarEvent?: (task: Task) => void;  // ⭐ NOVO
+  showFilters?: boolean;
+  showClient?: boolean;
+  showQuickActions?: boolean;               // ⭐ NOVO
+  compact?: boolean;
+  emptyMessage?: string;
+  loading?: boolean;
+  className?: string;
+}
+```
+
+### ClientCard - Atualizado
+
+Agora exibe ações rápidas nas tarefas expandidas:
+
+```tsx
+// Prepara clientData
+const clientData: ClientData = useMemo(() => ({
+  id: client.id,
+  name: client.name,
+  contact_phone: client.contact_phone,
+  contact_email: client.contact_email,
+  contact_name: client.contact_name,
+  drive_url: client.drive_url,
+  ads_account_url: client.ads_account_url,
+  google_ads_account_url: client.google_ads_account_url,
+  instagram_url: client.instagram_url,
+}), [client]);
+
+// No JSX das tarefas
+{detectTaskType(task.title) && (
+  <TaskQuickActions
+    task={task}
+    clientData={clientData}
+    size="sm"
+    className="ml-auto"
+  />
+)}
 ```
 
 ### Componente: `PriorityBadge`
@@ -980,62 +1247,355 @@ export function useTasks(options: UseTasksOptions = {}) {
 
 ---
 
-## 📦 Templates Padrão por Nicho
+## 📦 Templates Padrão
 
-Seed inicial de templates:
+### A. Templates OPERACIONAIS (Aplica-se a TODOS os clientes)
+
+Estas são as tarefas padrão do gestor de tráfego de alto padrão:
 
 ```sql
--- Fitness / Academia
-INSERT INTO task_templates (segment, title, recurrence, priority, notify_client, notify_message) VALUES
-('fitness', 'Criar roteiros para anúncios', 'weekly', 'high', false, null),
-('fitness', 'Revisar e otimizar campanhas', 'weekly', 'high', true, 'Olá [NOME]! Acabamos de otimizar suas campanhas 🚀'),
-('fitness', 'Criar criativos novos', 'biweekly', 'medium', true, 'Olá [NOME]! Novos criativos prontos para aprovação ✨'),
-('fitness', 'Analisar métricas e ROAS', 'weekly', 'high', false, null),
-('fitness', 'Campanha de aulas experimentais', 'monthly', 'medium', false, null);
+-- ═══════════════════════════════════════════════════════════════
+-- TEMPLATES OPERACIONAIS - TAREFAS DIÁRIAS
+-- ═══════════════════════════════════════════════════════════════
 
--- Delivery / Restaurante
-INSERT INTO task_templates (segment, title, recurrence, priority, notify_client, notify_message) VALUES
-('delivery', 'Atualizar cardápio digital', 'monthly', 'medium', true, 'Olá [NOME]! Cardápio atualizado ✅'),
-('delivery', 'Captar fotos dos pratos', 'monthly', 'high', false, null),
-('delivery', 'Revisar campanhas de pedidos', 'weekly', 'high', false, null),
-('delivery', 'Criar promoções sazonais', 'biweekly', 'medium', true, 'Olá [NOME]! Nova promoção criada 🍕'),
-('delivery', 'Otimizar raio de entrega', 'monthly', 'low', false, null);
+INSERT INTO task_templates (category, segment, title, description, checklist, recurrence, priority, is_system) VALUES
 
--- E-commerce
-INSERT INTO task_templates (segment, title, recurrence, priority, notify_client, notify_message) VALUES
-('ecommerce', 'Revisar catálogo de produtos', 'weekly', 'medium', false, null),
-('ecommerce', 'Otimizar campanhas de vendas', 'weekly', 'high', false, null),
-('ecommerce', 'Criar remarketing carrinho', 'monthly', 'high', true, 'Olá [NOME]! Remarketing configurado 🛒'),
-('ecommerce', 'Analisar produtos mais vendidos', 'biweekly', 'medium', false, null),
-('ecommerce', 'Atualizar criativos sazonais', 'monthly', 'medium', true, 'Novos criativos prontos! ✨');
+-- Diárias - Monitoramento
+('operational', NULL, 'Monitoramento de Performance', 
+ 'Verificar métricas principais das campanhas',
+ '[
+   {"id": "1", "text": "Checar CPC, CTR, CPM, CPA, ROAS", "done": false},
+   {"id": "2", "text": "Verificar status dos anúncios (reprovações, aprendizado limitado)", "done": false},
+   {"id": "3", "text": "Checar orçamento diário e distribuição", "done": false},
+   {"id": "4", "text": "Verificar saturação de públicos", "done": false},
+   {"id": "5", "text": "Microajustes de lances se necessário", "done": false}
+ ]'::jsonb,
+ 'daily', 'high', true),
 
--- Clínica / Saúde
-INSERT INTO task_templates (segment, title, recurrence, priority, notify_client, notify_message) VALUES
-('clinica', 'Campanha de agendamentos', 'weekly', 'high', false, null),
-('clinica', 'Criar criativos com depoimentos', 'monthly', 'medium', true, 'Novos criativos prontos para aprovação 👨‍⚕️'),
-('clinica', 'Revisar público-alvo', 'monthly', 'medium', false, null),
-('clinica', 'Remarketing de consultas', 'biweekly', 'high', false, null);
+('operational', NULL, 'Atendimento e Comunicação', 
+ 'Manter comunicação ativa com o cliente',
+ '[
+   {"id": "1", "text": "Verificar mensagens do cliente (responder em até 2h)", "done": false},
+   {"id": "2", "text": "Monitorar movimentação do negócio (promoções, imprevistos)", "done": false},
+   {"id": "3", "text": "Atualizar insights diários", "done": false}
+ ]'::jsonb,
+ 'daily', 'high', true),
 
--- Serviços Locais
-INSERT INTO task_templates (segment, title, recurrence, priority, notify_client, notify_message) VALUES
-('servicos', 'Campanha de leads WhatsApp', 'weekly', 'high', false, null),
-('servicos', 'Otimizar Google Meu Negócio', 'monthly', 'medium', true, 'Google Meu Negócio atualizado! 📍'),
-('servicos', 'Criar ofertas locais', 'biweekly', 'medium', false, null),
-('servicos', 'Revisar avaliações e responder', 'weekly', 'low', false, null);
+('operational', NULL, 'Monitoramento de Concorrência', 
+ 'Acompanhar o que os concorrentes estão fazendo',
+ '[
+   {"id": "1", "text": "Analisar anúncios ativos dos concorrentes", "done": false},
+   {"id": "2", "text": "Registrar insights relevantes", "done": false}
+ ]'::jsonb,
+ 'daily', 'medium', true),
 
--- Imobiliário
-INSERT INTO task_templates (segment, title, recurrence, priority, notify_client, notify_message) VALUES
-('imobiliario', 'Criar campanhas de lançamento', 'monthly', 'high', true, 'Campanha de lançamento criada! 🏠'),
-('imobiliario', 'Remarketing de visitas', 'weekly', 'high', false, null),
-('imobiliario', 'Atualizar catálogo de imóveis', 'weekly', 'medium', false, null),
-('imobiliario', 'Analisar leads qualificados', 'weekly', 'high', false, null);
+('operational', NULL, 'Monitoramento de Funil/SAC', 
+ 'Acompanhar qualidade do atendimento',
+ '[
+   {"id": "1", "text": "Acompanhar fluxo de mensagens (WhatsApp, Instagram)", "done": false},
+   {"id": "2", "text": "Checar taxa de resposta", "done": false},
+   {"id": "3", "text": "Avaliar qualidade das conversas", "done": false}
+ ]'::jsonb,
+ 'daily', 'medium', true),
 
--- Educação / Cursos
-INSERT INTO task_templates (segment, title, recurrence, priority, notify_client, notify_message) VALUES
-('educacao', 'Campanha de matrículas', 'monthly', 'high', false, null),
-('educacao', 'Criar conteúdo educativo', 'weekly', 'medium', true, 'Novo conteúdo publicado! 📚'),
-('educacao', 'Remarketing de interessados', 'weekly', 'high', false, null),
-('educacao', 'Webinar / Live promocional', 'monthly', 'medium', true, 'Live agendada! 🎥');
+-- ═══════════════════════════════════════════════════════════════
+-- TEMPLATES OPERACIONAIS - A CADA 3 DIAS
+-- ═══════════════════════════════════════════════════════════════
+
+('operational', NULL, 'Otimizações Táticas de Campanha', 
+ 'Ajustes para manter performance alta',
+ '[
+   {"id": "1", "text": "Pausar anúncios com CTR muito baixo", "done": false},
+   {"id": "2", "text": "Duplicar criativos vencedores", "done": false},
+   {"id": "3", "text": "Ajustar segmentações (frio/morno/quente)", "done": false},
+   {"id": "4", "text": "Revisar mix estáticos vs vídeos", "done": false},
+   {"id": "5", "text": "Inserir variações de copy (evitar fadiga)", "done": false}
+ ]'::jsonb,
+ 'every_3_days', 'high', true),
+
+('operational', NULL, 'Ajustes de Criativos', 
+ 'Atualizar criativos que estão saturando',
+ '[
+   {"id": "1", "text": "Criar novas versões de criativos saturados", "done": false},
+   {"id": "2", "text": "Atualizar headlines e CTAs", "done": false},
+   {"id": "3", "text": "Testar novas imagens/vídeos", "done": false}
+ ]'::jsonb,
+ 'every_3_days', 'medium', true),
+
+('operational', NULL, 'Auditoria Rápida de Funil', 
+ 'Verificar se o funil está funcionando',
+ '[
+   {"id": "1", "text": "Revisar tempo de resposta no WhatsApp", "done": false},
+   {"id": "2", "text": "Avaliar scripts de atendimento", "done": false},
+   {"id": "3", "text": "Checar páginas e botões (links quebrados)", "done": false}
+ ]'::jsonb,
+ 'every_3_days', 'medium', true),
+
+-- ═══════════════════════════════════════════════════════════════
+-- TEMPLATES OPERACIONAIS - SEMANAIS
+-- ═══════════════════════════════════════════════════════════════
+
+('operational', NULL, 'Relatório Semanal de Performance', 
+ 'Análise completa da semana',
+ '[
+   {"id": "1", "text": "Compilar CPC, CPM, CTR, CPA por criativo", "done": false},
+   {"id": "2", "text": "Calcular ROI/ROAS semanal", "done": false},
+   {"id": "3", "text": "Análise de funil (impressão → clique → conversa → venda)", "done": false},
+   {"id": "4", "text": "Identificar criativos vencedores e perdedores", "done": false},
+   {"id": "5", "text": "Documentar aprendizados da semana", "done": false}
+ ]'::jsonb,
+ 'weekly', 'high', true),
+
+('operational', NULL, 'Reunião/Update Semanal com Cliente', 
+ 'Comunicar resultados e próximos passos',
+ '[
+   {"id": "1", "text": "Preparar pontos positivos da semana", "done": false},
+   {"id": "2", "text": "Listar alertas de performance", "done": false},
+   {"id": "3", "text": "Definir recomendações para próxima semana", "done": false},
+   {"id": "4", "text": "Enviar update ou realizar reunião", "done": false}
+ ]'::jsonb,
+ 'weekly', 'high', true),
+
+('operational', NULL, 'Planejamento Criativo Semanal', 
+ 'Definir criativos da próxima semana',
+ '[
+   {"id": "1", "text": "Definir novos criativos baseado no que funcionou", "done": false},
+   {"id": "2", "text": "Criar pauta de conteúdo para redes", "done": false},
+   {"id": "3", "text": "Revisar ofertas da semana", "done": false}
+ ]'::jsonb,
+ 'weekly', 'medium', true),
+
+('operational', NULL, 'SEO Local (GMB)', 
+ 'Manter Google Meu Negócio atualizado',
+ '[
+   {"id": "1", "text": "Atualizar Google Meu Negócio", "done": false},
+   {"id": "2", "text": "Inserir fotos novas", "done": false},
+   {"id": "3", "text": "Publicar post/promoção", "done": false}
+ ]'::jsonb,
+ 'weekly', 'low', true),
+
+('operational', NULL, 'Teste de Novo Público', 
+ 'Expandir alcance com novos públicos',
+ '[
+   {"id": "1", "text": "Criar 1 público novo (interest, lookalike, local)", "done": false},
+   {"id": "2", "text": "Configurar teste A/B", "done": false},
+   {"id": "3", "text": "Documentar hipótese do teste", "done": false}
+ ]'::jsonb,
+ 'weekly', 'medium', true),
+
+-- ═══════════════════════════════════════════════════════════════
+-- TEMPLATES OPERACIONAIS - QUINZENAIS
+-- ═══════════════════════════════════════════════════════════════
+
+('operational', NULL, 'Deep Analysis (CAC/LTV)', 
+ 'Análise profunda de métricas de negócio',
+ '[
+   {"id": "1", "text": "Calcular CAC atualizado", "done": false},
+   {"id": "2", "text": "Calcular LTV do cliente", "done": false},
+   {"id": "3", "text": "Analisar recorrência de clientes", "done": false},
+   {"id": "4", "text": "Identificar melhores dias/horários", "done": false},
+   {"id": "5", "text": "Detectar padrões de queda ou crescimento", "done": false}
+ ]'::jsonb,
+ 'biweekly', 'high', true),
+
+('operational', NULL, 'Testes Estruturais de Campanha', 
+ 'Testar novas abordagens',
+ '[
+   {"id": "1", "text": "Testar CBO vs ABO", "done": false},
+   {"id": "2", "text": "Testar novas abordagens (UGC, depoimento, autoridade)", "done": false},
+   {"id": "3", "text": "Testar nova oferta forte", "done": false},
+   {"id": "4", "text": "Documentar resultados dos testes", "done": false}
+ ]'::jsonb,
+ 'biweekly', 'high', true),
+
+('operational', NULL, 'Criativos Premium', 
+ 'Criar criativos de alto impacto',
+ '[
+   {"id": "1", "text": "Criar criativo flagship com design premium", "done": false},
+   {"id": "2", "text": "Criar vídeo motion de impacto", "done": false},
+   {"id": "3", "text": "Revisar identidade visual dos anúncios", "done": false}
+ ]'::jsonb,
+ 'biweekly', 'medium', true),
+
+('operational', NULL, 'Análise Profunda de Concorrência', 
+ 'Entender posicionamento no mercado',
+ '[
+   {"id": "1", "text": "Pesquisar melhores campanhas da concorrência", "done": false},
+   {"id": "2", "text": "Realizar comparação direta", "done": false},
+   {"id": "3", "text": "Documentar oportunidades de diferenciação", "done": false},
+   {"id": "4", "text": "Identificar gaps de mercado", "done": false}
+ ]'::jsonb,
+ 'biweekly', 'medium', true),
+
+-- ═══════════════════════════════════════════════════════════════
+-- TEMPLATES OPERACIONAIS - MENSAIS
+-- ═══════════════════════════════════════════════════════════════
+
+('operational', NULL, 'Reunião Estratégica Mensal', 
+ 'Revisão completa e planejamento do próximo mês',
+ '[
+   {"id": "1", "text": "Preparar revisão completa do mês", "done": false},
+   {"id": "2", "text": "Análise profunda de ROI", "done": false},
+   {"id": "3", "text": "Criar plano de ação para 30 dias", "done": false},
+   {"id": "4", "text": "Revisar metas de faturamento", "done": false},
+   {"id": "5", "text": "Reavaliar persona e mensagens-chave", "done": false},
+   {"id": "6", "text": "Realizar reunião com cliente", "done": false}
+ ]'::jsonb,
+ 'monthly', 'urgent', true),
+
+('operational', NULL, 'Planejamento Mensal de Campanhas', 
+ 'Criar calendário de campanhas do mês',
+ '[
+   {"id": "1", "text": "Criar calendário de campanhas mensais", "done": false},
+   {"id": "2", "text": "Definir datas promocionais fortes", "done": false},
+   {"id": "3", "text": "Planejar campanhas premium", "done": false},
+   {"id": "4", "text": "Alinhar com eventos sazonais", "done": false}
+ ]'::jsonb,
+ 'monthly', 'high', true),
+
+('operational', NULL, 'Auditoria Completa de Funil', 
+ 'Revisar todo o processo de vendas',
+ '[
+   {"id": "1", "text": "Auditar WhatsApp → Atendimento → Fechamento", "done": false},
+   {"id": "2", "text": "Identificar pontos de retenção e churn", "done": false},
+   {"id": "3", "text": "Atualizar scripts de atendimento", "done": false},
+   {"id": "4", "text": "Revisar pós-venda", "done": false}
+ ]'::jsonb,
+ 'monthly', 'high', true),
+
+('operational', NULL, 'Auditoria de Marca (Branding)', 
+ 'Garantir consistência da marca',
+ '[
+   {"id": "1", "text": "Verificar padronização visual", "done": false},
+   {"id": "2", "text": "Revisar tom de voz", "done": false},
+   {"id": "3", "text": "Atualizar elementos de percepção de valor", "done": false}
+ ]'::jsonb,
+ 'monthly', 'medium', true),
+
+('operational', NULL, 'Relatório de Inteligência de Mercado', 
+ 'Análise de tendências e oportunidades',
+ '[
+   {"id": "1", "text": "Pesquisar tendências do setor", "done": false},
+   {"id": "2", "text": "Identificar novas oportunidades de crescimento", "done": false},
+   {"id": "3", "text": "Documentar insights para o cliente", "done": false}
+ ]'::jsonb,
+ 'monthly', 'medium', true);
+
+-- ═══════════════════════════════════════════════════════════════
+-- TEMPLATES ESPECÍFICOS PARA DELIVERY (Operacionais)
+-- ═══════════════════════════════════════════════════════════════
+
+INSERT INTO task_templates (category, segment, title, description, checklist, recurrence, priority, is_system) VALUES
+
+('operational', 'delivery', 'Gestão de Reputação (Reviews)', 
+ 'Monitorar e responder avaliações',
+ '[
+   {"id": "1", "text": "Verificar avaliações iFood", "done": false},
+   {"id": "2", "text": "Verificar avaliações Google", "done": false},
+   {"id": "3", "text": "Criar/enviar respostas padrão", "done": false},
+   {"id": "4", "text": "Identificar tendências de reclamações", "done": false}
+ ]'::jsonb,
+ 'daily', 'high', true),
+
+('operational', 'delivery', 'Revisão de Mix de Ofertas (Delivery)', 
+ 'Otimizar promoções do cardápio',
+ '[
+   {"id": "1", "text": "Analisar pratos com maior margem", "done": false},
+   {"id": "2", "text": "Analisar pratos com maior giro", "done": false},
+   {"id": "3", "text": "Ajustar promoções conforme estoque", "done": false}
+ ]'::jsonb,
+ 'every_3_days', 'medium', true);
+
+-- ═══════════════════════════════════════════════════════════════
+-- TEMPLATES ESPECÍFICOS PARA ACADEMIA (Operacionais)
+-- ═══════════════════════════════════════════════════════════════
+
+INSERT INTO task_templates (category, segment, title, description, checklist, recurrence, priority, is_system) VALUES
+
+('operational', 'fitness', 'Revisão de Mix de Ofertas (Academia)', 
+ 'Otimizar ofertas de matrícula',
+ '[
+   {"id": "1", "text": "Revisar ofertas de matrícula", "done": false},
+   {"id": "2", "text": "Analisar ofertas de avaliação física", "done": false},
+   {"id": "3", "text": "Planejar challenges e desafios", "done": false}
+ ]'::jsonb,
+ 'every_3_days', 'medium', true);
+```
+
+### B. Templates POR NICHO (Específicos do segmento)
+
+```sql
+-- ═══════════════════════════════════════════════════════════════
+-- TEMPLATES POR NICHO - FITNESS / ACADEMIA
+-- ═══════════════════════════════════════════════════════════════
+
+INSERT INTO task_templates (category, segment, title, description, recurrence, priority, notify_client, notify_message, is_system) VALUES
+('niche', 'fitness', 'Criar roteiros para anúncios', 'Desenvolver scripts de vídeo e copy para anúncios', 'weekly', 'high', false, null, true),
+('niche', 'fitness', 'Campanha de aulas experimentais', 'Criar campanha para captar leads de aulas grátis', 'monthly', 'high', true, 'Olá [NOME]! Campanha de aulas experimentais no ar 🏋️', true),
+('niche', 'fitness', 'Criar conteúdo de transformação', 'Antes/depois, depoimentos de alunos', 'biweekly', 'medium', true, 'Olá [NOME]! Novos conteúdos de transformação prontos ✨', true),
+('niche', 'fitness', 'Campanha de desafio fitness', 'Criar campanha de desafio 30 dias ou similar', 'monthly', 'medium', false, null, true);
+
+-- ═══════════════════════════════════════════════════════════════
+-- TEMPLATES POR NICHO - DELIVERY / RESTAURANTE
+-- ═══════════════════════════════════════════════════════════════
+
+INSERT INTO task_templates (category, segment, title, description, recurrence, priority, notify_client, notify_message, is_system) VALUES
+('niche', 'delivery', 'Atualizar cardápio digital', 'Revisar fotos, preços e descrições do cardápio', 'monthly', 'medium', true, 'Olá [NOME]! Cardápio atualizado ✅', true),
+('niche', 'delivery', 'Captar fotos profissionais dos pratos', 'Organizar sessão de fotos dos pratos principais', 'monthly', 'high', false, null, true),
+('niche', 'delivery', 'Criar promoções sazonais', 'Desenvolver promoções para datas especiais', 'biweekly', 'medium', true, 'Olá [NOME]! Nova promoção criada 🍕', true),
+('niche', 'delivery', 'Otimizar raio de entrega', 'Analisar e ajustar área de cobertura', 'monthly', 'low', false, null, true),
+('niche', 'delivery', 'Campanha de combos', 'Criar ofertas de combos promocionais', 'biweekly', 'medium', false, null, true);
+
+-- ═══════════════════════════════════════════════════════════════
+-- TEMPLATES POR NICHO - E-COMMERCE
+-- ═══════════════════════════════════════════════════════════════
+
+INSERT INTO task_templates (category, segment, title, description, recurrence, priority, notify_client, notify_message, is_system) VALUES
+('niche', 'ecommerce', 'Revisar catálogo de produtos', 'Verificar fotos, descrições e preços', 'weekly', 'medium', false, null, true),
+('niche', 'ecommerce', 'Criar remarketing de carrinho', 'Configurar campanha de abandono de carrinho', 'monthly', 'high', true, 'Olá [NOME]! Remarketing configurado 🛒', true),
+('niche', 'ecommerce', 'Analisar produtos mais vendidos', 'Identificar bestsellers para escalar', 'biweekly', 'medium', false, null, true),
+('niche', 'ecommerce', 'Atualizar criativos sazonais', 'Criar criativos para datas comemorativas', 'monthly', 'medium', true, 'Novos criativos prontos! ✨', true),
+('niche', 'ecommerce', 'Campanha de lançamento de produto', 'Criar campanha para novos produtos', 'monthly', 'high', false, null, true);
+
+-- ═══════════════════════════════════════════════════════════════
+-- TEMPLATES POR NICHO - CLÍNICA / SAÚDE
+-- ═══════════════════════════════════════════════════════════════
+
+INSERT INTO task_templates (category, segment, title, description, recurrence, priority, notify_client, notify_message, is_system) VALUES
+('niche', 'clinica', 'Campanha de agendamentos', 'Criar campanha para gerar consultas', 'weekly', 'high', false, null, true),
+('niche', 'clinica', 'Criar criativos com depoimentos', 'Desenvolver anúncios com cases de sucesso', 'monthly', 'medium', true, 'Novos criativos prontos para aprovação 👨‍⚕️', true),
+('niche', 'clinica', 'Revisar público-alvo', 'Analisar e ajustar segmentação', 'monthly', 'medium', false, null, true),
+('niche', 'clinica', 'Remarketing de consultas', 'Criar campanha para retorno de pacientes', 'biweekly', 'high', false, null, true);
+
+-- ═══════════════════════════════════════════════════════════════
+-- TEMPLATES POR NICHO - SERVIÇOS LOCAIS
+-- ═══════════════════════════════════════════════════════════════
+
+INSERT INTO task_templates (category, segment, title, description, recurrence, priority, notify_client, notify_message, is_system) VALUES
+('niche', 'servicos', 'Campanha de leads WhatsApp', 'Criar campanha focada em mensagens', 'weekly', 'high', false, null, true),
+('niche', 'servicos', 'Otimizar Google Meu Negócio', 'Atualizar informações e fotos', 'monthly', 'medium', true, 'Google Meu Negócio atualizado! 📍', true),
+('niche', 'servicos', 'Criar ofertas locais', 'Desenvolver promoções para região', 'biweekly', 'medium', false, null, true),
+('niche', 'servicos', 'Revisar e responder avaliações', 'Gerenciar reputação online', 'weekly', 'low', false, null, true);
+
+-- ═══════════════════════════════════════════════════════════════
+-- TEMPLATES POR NICHO - IMOBILIÁRIO
+-- ═══════════════════════════════════════════════════════════════
+
+INSERT INTO task_templates (category, segment, title, description, recurrence, priority, notify_client, notify_message, is_system) VALUES
+('niche', 'imobiliario', 'Criar campanhas de lançamento', 'Campanha para novos empreendimentos', 'monthly', 'high', true, 'Campanha de lançamento criada! 🏠', true),
+('niche', 'imobiliario', 'Remarketing de visitas', 'Reimpactar quem visitou imóveis', 'weekly', 'high', false, null, true),
+('niche', 'imobiliario', 'Atualizar catálogo de imóveis', 'Sincronizar fotos e informações', 'weekly', 'medium', false, null, true),
+('niche', 'imobiliario', 'Analisar leads qualificados', 'Classificar e priorizar leads', 'weekly', 'high', false, null, true);
+
+-- ═══════════════════════════════════════════════════════════════
+-- TEMPLATES POR NICHO - EDUCAÇÃO / CURSOS
+-- ═══════════════════════════════════════════════════════════════
+
+INSERT INTO task_templates (category, segment, title, description, recurrence, priority, notify_client, notify_message, is_system) VALUES
+('niche', 'educacao', 'Campanha de matrículas', 'Criar campanha para captação de alunos', 'monthly', 'high', false, null, true),
+('niche', 'educacao', 'Criar conteúdo educativo', 'Desenvolver conteúdo para autoridade', 'weekly', 'medium', true, 'Novo conteúdo publicado! 📚', true),
+('niche', 'educacao', 'Remarketing de interessados', 'Reimpactar quem demonstrou interesse', 'weekly', 'high', false, null, true),
+('niche', 'educacao', 'Webinar / Live promocional', 'Organizar evento online de captação', 'monthly', 'medium', true, 'Live agendada! 🎥', true);
 ```
 
 ---
@@ -1097,22 +1657,62 @@ INSERT INTO task_templates (segment, title, recurrence, priority, notify_client,
 
 ## ✅ Checklist de Implementação
 
-- [ ] Migrations SQL (task_templates, tasks, client_notes)
-- [ ] RLS Policies
-- [ ] Types TypeScript
-- [ ] Seed de templates padrão
-- [ ] API Routes (tasks, templates, notes)
-- [ ] Hook useTasks
-- [ ] Hook useTemplates
-- [ ] Hook useNotes
-- [ ] Componentes UI (TaskCard, PriorityBadge, etc)
-- [ ] Widget TodayTasks no dashboard
+### Database
+- [ ] Migration tabela `task_templates` (com category, checklist, is_system)
+- [ ] Migration tabela `tasks` (com category, checklist, completion_notes)
+- [ ] Migration tabela `client_notes`
+- [ ] RLS Policies para todas as tabelas
+- [ ] Seed de templates OPERACIONAIS (20+ templates)
+- [ ] Seed de templates por NICHO (30+ templates)
+
+### Types TypeScript
+- [ ] `TaskRecurrence` incluindo 'every_3_days'
+- [ ] `TaskCategory` ('operational' | 'niche' | 'custom')
+- [ ] `ChecklistItem` interface
+- [ ] Atualizar interfaces Task, TaskTemplate
+
+### API Routes
+- [ ] GET/POST /api/tasks
+- [ ] GET/PUT/DELETE /api/tasks/[id]
+- [ ] GET /api/tasks/today
+- [ ] POST /api/tasks/complete (com recorrência automática)
+- [ ] GET/POST /api/templates
+- [ ] GET /api/templates/operational (apenas operacionais)
+- [ ] GET /api/templates/by-segment/[segment]
+- [ ] POST /api/templates/apply (aplicar templates ao cliente)
+- [ ] GET/POST /api/notes
+
+### Hooks
+- [ ] useTasks (com filtros por categoria)
+- [ ] useTemplates (operacionais e por nicho)
+- [ ] useNotes
+
+### Componentes
+- [ ] TaskCard (com checklist expandível)
+- [ ] TaskList (agrupado por categoria)
+- [ ] TaskForm (com seleção de categoria)
+- [ ] TaskModal
+- [ ] TodayTasks (widget dashboard)
+- [ ] PriorityBadge
+- [ ] RecurrenceBadge (incluindo "A cada 3 dias")
+- [ ] CategoryBadge (Operacional / Nicho / Custom)
+- [ ] ChecklistView (subtarefas)
+- [ ] TemplateSelector (separado por categoria)
+- [ ] TemplateManager
+- [ ] ClientNotes
+- [ ] WhatsAppNotify
+
+### Páginas
+- [ ] /tasks (visão geral com filtros)
+- [ ] /templates (gerenciar templates)
 - [ ] Aba Tarefas no card do cliente
-- [ ] Modal de criação de tarefa
-- [ ] TemplateSelector no onboarding
-- [ ] WhatsAppNotify modal
-- [ ] Página /tasks (visão geral)
-- [ ] Página /templates (gerenciar templates)
+- [ ] Widget TodayTasks no dashboard
+
+### Lógica de Negócio
+- [ ] Ao criar cliente: aplicar templates OPERACIONAIS automaticamente
+- [ ] Ao criar cliente: oferecer templates do NICHO para seleção
+- [ ] Ao completar tarefa recorrente: criar próxima ocorrência
+- [ ] Calcular next_recurrence_date para 'every_3_days'
 
 ---
 

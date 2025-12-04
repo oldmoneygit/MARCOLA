@@ -247,6 +247,55 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // Aplicar templates operacionais automaticamente ao criar cliente
+    try {
+      // Buscar templates operacionais do sistema
+      const { data: operationalTemplates, error: templatesError } = await supabase
+        .from('task_templates')
+        .select('*')
+        .eq('is_system', true)
+        .eq('category', 'operational')
+        .eq('is_active', true)
+        .order('order_index', { ascending: true });
+
+      if (!templatesError && operationalTemplates && operationalTemplates.length > 0) {
+        const today = new Date();
+        const tasksToCreate = operationalTemplates.map((template) => {
+          const dueDate = new Date(today);
+          dueDate.setDate(dueDate.getDate() + (template.default_days_offset || 0));
+
+          return {
+            user_id: user.id,
+            client_id: client.id,
+            template_id: template.id,
+            category: template.category || 'operational',
+            title: template.title,
+            description: template.description,
+            checklist: template.checklist || [],
+            due_date: dueDate.toISOString().split('T')[0],
+            priority: template.priority || 'medium',
+            status: 'todo',
+            is_recurring: template.is_recurring || false,
+            recurrence: template.recurrence || null,
+            send_whatsapp: template.notify_client || false,
+            whatsapp_message: template.notify_message || null,
+          };
+        });
+
+        const { error: tasksError } = await supabase
+          .from('tasks')
+          .insert(tasksToCreate);
+
+        if (tasksError) {
+          console.error('[API] Error creating operational tasks:', tasksError);
+          // Não falhar a criação do cliente, apenas logar o erro
+        }
+      }
+    } catch (tasksErr) {
+      console.error('[API] Error applying operational templates:', tasksErr);
+      // Não falhar a criação do cliente
+    }
+
     return NextResponse.json(client, { status: 201 });
   } catch (err) {
     console.error('[API] POST /api/clients unexpected error:', err);

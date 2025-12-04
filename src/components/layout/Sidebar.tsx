@@ -11,7 +11,9 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { useMemo } from 'react';
 
+import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { APP_NAME, NAV_ITEMS, ROUTES } from '@/lib/constants';
 import { cn } from '@/lib/utils';
 
@@ -108,6 +110,26 @@ const NavIcons = {
       />
     </svg>
   ),
+  whatsapp: (
+    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth={1.5}
+        d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
+      />
+    </svg>
+  ),
+  team: (
+    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth={1.5}
+        d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"
+      />
+    </svg>
+  ),
 };
 
 /**
@@ -122,6 +144,25 @@ function getNavIcon(id: string): React.ReactNode {
  */
 function Sidebar({ isCollapsed = false, onToggle, className }: SidebarProps) {
   const pathname = usePathname();
+  const { canAccessRoute, data: currentUser } = useCurrentUser();
+
+  /**
+   * Filtra os itens de navegação baseado nas permissões do usuário
+   */
+  const filteredNavItems = useMemo(() => {
+    // Se ainda carregando ou sem usuário, mostrar todos (será redirecionado se não autenticado)
+    if (!currentUser) {
+      return NAV_ITEMS;
+    }
+
+    // Owners veem tudo
+    if (currentUser.isOwner) {
+      return NAV_ITEMS;
+    }
+
+    // Team members veem apenas o que têm permissão
+    return NAV_ITEMS.filter(item => canAccessRoute(item.id));
+  }, [currentUser, canAccessRoute]);
 
   /**
    * Verifica se a rota está ativa
@@ -220,7 +261,7 @@ function Sidebar({ isCollapsed = false, onToggle, className }: SidebarProps) {
 
         {/* Navigation */}
         <nav className="flex-1 py-6 px-3 space-y-1 overflow-y-auto">
-          {NAV_ITEMS.map((item) => {
+          {filteredNavItems.map((item) => {
             const isActive = isActiveRoute(item.href);
 
             return (
@@ -277,15 +318,25 @@ function Sidebar({ isCollapsed = false, onToggle, className }: SidebarProps) {
 
         {/* Footer */}
         <div className="p-4 border-t border-white/[0.08]">
-          <button
+          <Link
+            href={ROUTES.SETTINGS}
             className={cn(
               'flex items-center gap-3 w-full px-3 py-2.5 rounded-xl',
               'text-zinc-400 hover:text-white hover:bg-white/[0.05]',
-              'transition-colors duration-200'
+              'transition-colors duration-200',
+              'group relative',
+              pathname === ROUTES.SETTINGS && 'bg-violet-500/10 text-white'
             )}
           >
+            {/* Active indicator */}
+            {pathname === ROUTES.SETTINGS && (
+              <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-violet-500 rounded-r-full" />
+            )}
             <svg
-              className="w-5 h-5 flex-shrink-0"
+              className={cn(
+                'w-5 h-5 flex-shrink-0',
+                pathname === ROUTES.SETTINGS ? 'text-violet-400' : 'text-zinc-500 group-hover:text-zinc-300'
+              )}
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -304,7 +355,22 @@ function Sidebar({ isCollapsed = false, onToggle, className }: SidebarProps) {
               />
             </svg>
             {!isCollapsed && <span className="font-medium text-sm">Configurações</span>}
-          </button>
+
+            {/* Tooltip for collapsed state */}
+            {isCollapsed && (
+              <div
+                className={cn(
+                  'absolute left-full ml-2 px-2 py-1',
+                  'bg-zinc-800 text-white text-sm rounded-lg',
+                  'opacity-0 invisible group-hover:opacity-100 group-hover:visible',
+                  'transition-all duration-200',
+                  'whitespace-nowrap z-50'
+                )}
+              >
+                Configurações
+              </div>
+            )}
+          </Link>
         </div>
       </div>
     </aside>

@@ -17,11 +17,13 @@ import { TaskForm } from './TaskForm';
 
 import { useTasks, useClients } from '@/hooks';
 
-import type { CreateTaskDTO, Task, TaskStatus, TaskPriority, Client } from '@/types';
+import type { CreateTaskDTO, Task, TaskStatus, TaskPriority, TaskCategory, Client } from '@/types';
+import { TASK_CATEGORY_CONFIG } from '@/types';
 import type { ClientData } from './TaskQuickActions';
 
 type FilterView = 'all' | 'today' | 'overdue' | 'upcoming';
 type FilterPriority = TaskPriority | 'all';
+type FilterCategory = TaskCategory | 'all';
 
 interface ClientOption {
   id: string;
@@ -57,6 +59,7 @@ export function TasksPageContent() {
   const [selectedClientId, setSelectedClientId] = useState<string>('');
   const [viewFilter, setViewFilter] = useState<FilterView>('all');
   const [priorityFilter, setPriorityFilter] = useState<FilterPriority>('all');
+  const [categoryFilter, setCategoryFilter] = useState<FilterCategory>('all');
   const [formLoading, setFormLoading] = useState(false);
 
   const clientOptions: ClientOption[] = useMemo(() => {
@@ -86,6 +89,11 @@ export function TasksPageContent() {
     // Filtrar por prioridade
     if (priorityFilter !== 'all') {
       filtered = filtered.filter(t => t.priority === priorityFilter);
+    }
+
+    // Filtrar por categoria
+    if (categoryFilter !== 'all') {
+      filtered = filtered.filter(t => t.category === categoryFilter);
     }
 
     // Filtrar por visão
@@ -139,7 +147,7 @@ export function TasksPageContent() {
     });
 
     return { filteredTasks: filtered, tasksByGroup: groups };
-  }, [tasks, viewFilter, priorityFilter]);
+  }, [tasks, viewFilter, priorityFilter, categoryFilter]);
 
   /**
    * Conta tarefas por filtro
@@ -158,6 +166,18 @@ export function TasksPageContent() {
         const dueDate = parseISO(t.due_date);
         return !isPast(dueDate) && !isToday(dueDate);
       }).length,
+    };
+  }, [tasks]);
+
+  /**
+   * Conta tarefas por categoria
+   */
+  const categoryCounts = useMemo(() => {
+    return {
+      all: tasks.length,
+      operational: tasks.filter(t => t.category === 'operational').length,
+      niche: tasks.filter(t => t.category === 'niche').length,
+      custom: tasks.filter(t => t.category === 'custom' || !t.category).length,
     };
   }, [tasks]);
 
@@ -263,20 +283,42 @@ export function TasksPageContent() {
           ))}
         </div>
 
-        {/* Filtro de prioridade */}
-        <div className="flex items-center gap-2 ml-auto">
-          <span className="text-xs text-zinc-400">Prioridade:</span>
-          <select
-            value={priorityFilter}
-            onChange={e => setPriorityFilter(e.target.value as FilterPriority)}
-            className="px-3 py-2 text-sm rounded-lg bg-zinc-900/80 border border-zinc-700/50 text-white focus:outline-none focus:border-violet-500/50 focus:ring-1 focus:ring-violet-500/30 transition-colors cursor-pointer hover:border-zinc-600/70"
-          >
-            <option value="all" className="bg-zinc-900 text-white">Todas</option>
-            <option value="urgent" className="bg-zinc-900 text-white">Urgente</option>
-            <option value="high" className="bg-zinc-900 text-white">Alta</option>
-            <option value="medium" className="bg-zinc-900 text-white">Média</option>
-            <option value="low" className="bg-zinc-900 text-white">Baixa</option>
-          </select>
+        {/* Filtros de categoria e prioridade */}
+        <div className="flex items-center gap-4 ml-auto">
+          {/* Filtro de categoria */}
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-zinc-400">Categoria:</span>
+            <select
+              value={categoryFilter}
+              onChange={e => setCategoryFilter(e.target.value as FilterCategory)}
+              className="px-3 py-2 text-sm rounded-lg bg-zinc-900/80 border border-zinc-700/50 text-white focus:outline-none focus:border-violet-500/50 focus:ring-1 focus:ring-violet-500/30 transition-colors cursor-pointer hover:border-zinc-600/70"
+            >
+              <option value="all" className="bg-zinc-900 text-white">
+                Todas ({categoryCounts.all})
+              </option>
+              {Object.entries(TASK_CATEGORY_CONFIG).map(([key, config]) => (
+                <option key={key} value={key} className="bg-zinc-900 text-white">
+                  {config.label} ({categoryCounts[key as TaskCategory] || 0})
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Filtro de prioridade */}
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-zinc-400">Prioridade:</span>
+            <select
+              value={priorityFilter}
+              onChange={e => setPriorityFilter(e.target.value as FilterPriority)}
+              className="px-3 py-2 text-sm rounded-lg bg-zinc-900/80 border border-zinc-700/50 text-white focus:outline-none focus:border-violet-500/50 focus:ring-1 focus:ring-violet-500/30 transition-colors cursor-pointer hover:border-zinc-600/70"
+            >
+              <option value="all" className="bg-zinc-900 text-white">Todas</option>
+              <option value="urgent" className="bg-zinc-900 text-white">Urgente</option>
+              <option value="high" className="bg-zinc-900 text-white">Alta</option>
+              <option value="medium" className="bg-zinc-900 text-white">Média</option>
+              <option value="low" className="bg-zinc-900 text-white">Baixa</option>
+            </select>
+          </div>
         </div>
       </div>
 
