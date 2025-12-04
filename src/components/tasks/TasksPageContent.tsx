@@ -17,7 +17,8 @@ import { TaskForm } from './TaskForm';
 
 import { useTasks, useClients } from '@/hooks';
 
-import type { CreateTaskDTO, Task, TaskStatus, TaskPriority } from '@/types';
+import type { CreateTaskDTO, Task, TaskStatus, TaskPriority, Client } from '@/types';
+import type { ClientData } from './TaskQuickActions';
 
 type FilterView = 'all' | 'today' | 'overdue' | 'upcoming';
 type FilterPriority = TaskPriority | 'all';
@@ -25,6 +26,23 @@ type FilterPriority = TaskPriority | 'all';
 interface ClientOption {
   id: string;
   name: string;
+}
+
+/**
+ * Converte um Client para ClientData para as ações rápidas
+ */
+function clientToClientData(client: Client): ClientData {
+  return {
+    id: client.id,
+    name: client.name,
+    contact_phone: client.contact_phone,
+    contact_email: client.contact_email,
+    contact_name: client.contact_name,
+    drive_url: client.drive_url,
+    ads_account_url: client.ads_account_url,
+    google_ads_account_url: client.google_ads_account_url,
+    instagram_url: client.instagram_url,
+  };
 }
 
 /**
@@ -44,6 +62,20 @@ export function TasksPageContent() {
   const clientOptions: ClientOption[] = useMemo(() => {
     return clients.map(c => ({ id: c.id, name: c.name }));
   }, [clients]);
+
+  // Mapa de clientes para ações rápidas
+  const clientsMap = useMemo(() => {
+    const map = new Map<string, ClientData>();
+    clients.forEach(client => {
+      map.set(client.id, clientToClientData(client));
+    });
+    return map;
+  }, [clients]);
+
+  // Função para obter clientData para uma tarefa
+  const getClientDataForTask = useCallback((task: Task): ClientData | null => {
+    return task.client_id ? clientsMap.get(task.client_id) || null : null;
+  }, [clientsMap]);
 
   /**
    * Filtra e agrupa tarefas
@@ -305,10 +337,12 @@ export function TasksPageContent() {
                     <TaskCard
                       key={task.id}
                       task={task}
+                      clientData={getClientDataForTask(task)}
                       onStatusChange={handleStatusChange}
                       onClick={setEditingTask}
                       onDelete={handleDeleteTask}
                       showClient
+                      showQuickActions
                     />
                   ))}
                 </div>

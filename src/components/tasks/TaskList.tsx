@@ -16,21 +16,32 @@ import { cn } from '@/lib/utils';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { TaskCard } from './TaskCard';
 
-import type { Task, TaskPriority, TaskStatus } from '@/types';
+import type { Task, TaskPriority, TaskStatus, ChecklistItem } from '@/types';
+import type { ClientData } from './TaskQuickActions';
 
 interface TaskListProps {
   /** Lista de tarefas */
   tasks: Task[];
+  /** Dados do cliente para ações rápidas (quando todas as tarefas são do mesmo cliente) */
+  clientData?: ClientData | null;
+  /** Mapa de clientes por ID (quando tarefas são de múltiplos clientes) */
+  clientsMap?: Map<string, ClientData>;
   /** Callback ao mudar status */
   onStatusChange?: (taskId: string, newStatus: TaskStatus) => Promise<void>;
   /** Callback ao clicar em uma tarefa */
   onTaskClick?: (task: Task) => void;
   /** Callback ao deletar */
   onDelete?: (taskId: string) => Promise<void>;
+  /** Callback ao atualizar checklist */
+  onChecklistUpdate?: (taskId: string, checklist: ChecklistItem[]) => Promise<void>;
+  /** Callback para criar evento no calendário */
+  onCreateCalendarEvent?: (task: Task) => void;
   /** Mostra filtros */
   showFilters?: boolean;
   /** Mostra o nome do cliente */
   showClient?: boolean;
+  /** Mostra ações rápidas */
+  showQuickActions?: boolean;
   /** Modo compacto */
   compact?: boolean;
   /** Mensagem de estado vazio */
@@ -64,11 +75,16 @@ const priorityFilters: { value: FilterPriority; label: string }[] = [
  */
 function TaskList({
   tasks,
+  clientData,
+  clientsMap,
   onStatusChange,
   onTaskClick,
   onDelete,
+  onChecklistUpdate,
+  onCreateCalendarEvent,
   showFilters = true,
   showClient = true,
+  showQuickActions = true,
   compact = false,
   emptyMessage = 'Nenhuma tarefa encontrada',
   loading = false,
@@ -76,6 +92,19 @@ function TaskList({
 }: TaskListProps) {
   const [statusFilter, setStatusFilter] = useState<FilterStatus>('all');
   const [priorityFilter, setPriorityFilter] = useState<FilterPriority>('all');
+
+  // Função para obter clientData para uma tarefa específica
+  const getClientDataForTask = (task: Task): ClientData | null => {
+    // Se temos clientData único, usar ele
+    if (clientData) {
+      return clientData;
+    }
+    // Se temos mapa de clientes, buscar pelo client_id
+    if (clientsMap && task.client_id) {
+      return clientsMap.get(task.client_id) || null;
+    }
+    return null;
+  };
 
   const filteredTasks = useMemo(() => {
     return tasks.filter((task) => {
@@ -190,10 +219,14 @@ function TaskList({
                       <TaskCard
                         key={task.id}
                         task={task}
+                        clientData={getClientDataForTask(task)}
                         onStatusChange={onStatusChange}
                         onClick={onTaskClick}
                         onDelete={onDelete}
+                        onChecklistUpdate={onChecklistUpdate}
+                        onCreateCalendarEvent={onCreateCalendarEvent}
                         showClient={showClient}
+                        showQuickActions={showQuickActions}
                         compact={compact}
                       />
                     ))}
@@ -213,10 +246,14 @@ function TaskList({
                       <TaskCard
                         key={task.id}
                         task={task}
+                        clientData={getClientDataForTask(task)}
                         onStatusChange={onStatusChange}
                         onClick={onTaskClick}
                         onDelete={onDelete}
+                        onChecklistUpdate={onChecklistUpdate}
+                        onCreateCalendarEvent={onCreateCalendarEvent}
                         showClient={showClient}
+                        showQuickActions={showQuickActions}
                         compact={compact}
                       />
                     ))}
@@ -236,10 +273,14 @@ function TaskList({
                       <TaskCard
                         key={task.id}
                         task={task}
+                        clientData={getClientDataForTask(task)}
                         onStatusChange={onStatusChange}
                         onClick={onTaskClick}
                         onDelete={onDelete}
+                        onChecklistUpdate={onChecklistUpdate}
+                        onCreateCalendarEvent={onCreateCalendarEvent}
                         showClient={showClient}
+                        showQuickActions={showQuickActions}
                         compact={compact}
                       />
                     ))}
@@ -253,10 +294,14 @@ function TaskList({
                 <TaskCard
                   key={task.id}
                   task={task}
+                  clientData={getClientDataForTask(task)}
                   onStatusChange={onStatusChange}
                   onClick={onTaskClick}
                   onDelete={onDelete}
+                  onChecklistUpdate={onChecklistUpdate}
+                  onCreateCalendarEvent={onCreateCalendarEvent}
                   showClient={showClient}
+                  showQuickActions={showQuickActions}
                   compact={compact}
                 />
               ))}

@@ -14,7 +14,7 @@ import { Button, GlassCard, StatusBadge, Modal, Icon } from '@/components/ui';
 import { CLIENT_STATUS, MEETING_FREQUENCIES, ROUTES, SEGMENTS, CAPTATION_FREQUENCIES, VIDEO_QUANTITY_RANGES, WEEK_DAYS } from '@/lib/constants';
 import { cn, formatCurrency, formatPhone } from '@/lib/utils';
 
-import { TaskList, TaskForm, NoteCard, NoteForm } from '@/components/tasks';
+import { TaskList, TaskForm, NoteCard, NoteForm, AddTaskFromTemplateModal } from '@/components/tasks';
 import { CalendarGrid, CalendarEventForm } from '@/components/calendar';
 import { BriefingDisplay } from '@/components/clients/BriefingDisplay';
 import {
@@ -24,6 +24,7 @@ import {
   SeasonalOffersCarousel,
   IntelligenceLoadingSkeleton,
 } from '@/components/intelligence';
+import { HealthScoreCard } from '@/components/clients/HealthScoreCard';
 
 import { useTasks, useClientNotes, useCalendar, useClientIntelligence } from '@/hooks';
 
@@ -58,6 +59,7 @@ export function ClientDetailContent({ clientId }: ClientDetailContentProps) {
 
   // Estados para modais
   const [showTaskModal, setShowTaskModal] = useState(false);
+  const [showTemplateModal, setShowTemplateModal] = useState(false);
   const [showEventModal, setShowEventModal] = useState(false);
   const [showNoteModal, setShowNoteModal] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | undefined>();
@@ -596,6 +598,9 @@ export function ClientDetailContent({ clientId }: ClientDetailContentProps) {
 
         {/* Métricas rápidas */}
         <div className="space-y-4">
+          {/* Health Score */}
+          <HealthScoreCard clientId={clientId} variant="compact" />
+
           <GlassCard>
             <div className="flex items-center gap-2 mb-3">
               <Icon name="barchart3" size="sm" className="text-blue-400" />
@@ -808,22 +813,43 @@ export function ClientDetailContent({ clientId }: ClientDetailContentProps) {
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <h2 className="text-lg font-semibold text-white">Tarefas do Cliente</h2>
-            <Button
-              onClick={() => {
-                setEditingTask(undefined);
-                setShowTaskModal(true);
-              }}
-            >
-              Nova Tarefa
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="secondary"
+                onClick={() => setShowTemplateModal(true)}
+              >
+                <Icon name="file-plus" size="sm" />
+                De Template
+              </Button>
+              <Button
+                onClick={() => {
+                  setEditingTask(undefined);
+                  setShowTaskModal(true);
+                }}
+              >
+                Nova Tarefa
+              </Button>
+            </div>
           </div>
 
           <TaskList
             tasks={tasks}
+            clientData={{
+              id: client.id,
+              name: client.name,
+              contact_phone: client.contact_phone,
+              contact_email: client.contact_email,
+              contact_name: client.contact_name,
+              drive_url: client.drive_url,
+              ads_account_url: client.ads_account_url,
+              google_ads_account_url: client.google_ads_account_url,
+              instagram_url: client.instagram_url,
+            }}
             onStatusChange={handleTaskStatusChange}
             onTaskClick={handleTaskClick}
             onDelete={handleDeleteTask}
             showClient={false}
+            showQuickActions={true}
             loading={tasksLoading}
             emptyMessage="Nenhuma tarefa cadastrada para este cliente"
           />
@@ -964,6 +990,18 @@ export function ClientDetailContent({ clientId }: ClientDetailContentProps) {
           }}
         />
       </Modal>
+
+      {/* Modal de Adicionar Tarefa de Template */}
+      <AddTaskFromTemplateModal
+        isOpen={showTemplateModal}
+        onClose={() => setShowTemplateModal(false)}
+        clientId={clientId}
+        clientName={client?.name}
+        onSubmit={async (data) => {
+          await createTask(data);
+          setShowTemplateModal(false);
+        }}
+      />
     </div>
   );
 }

@@ -1,11 +1,11 @@
 /**
  * @file page.tsx
- * @description Página de briefings (questionários por nicho)
+ * @description Página de templates de tarefas
  * @module app/(dashboard)/templates
  */
 
-import { BriefingsPageContent } from '@/components/templates';
+import { TemplatesPageContent } from '@/components/templates';
 
-export default function BriefingsPage() {
-  return <BriefingsPageContent />;
+export default function TemplatesPage() {
+  return <TemplatesPageContent />;
 }

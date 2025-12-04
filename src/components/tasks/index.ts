@@ -35,3 +35,9 @@ export { TaskStatusBadge } from './TaskStatusBadge';
 export type { TaskStatusBadgeProps } from './TaskStatusBadge';
 
 export { TasksPageContent } from './TasksPageContent';
+
+export { AddTaskFromTemplateModal } from './AddTaskFromTemplateModal';
+export type { AddTaskFromTemplateModalProps } from './AddTaskFromTemplateModal';
+
+export { TaskQuickActions, detectTaskType } from './TaskQuickActions';
+export type { TaskQuickActionsProps, ClientData, ClientCredential } from './TaskQuickActions';

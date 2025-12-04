@@ -15,22 +15,37 @@ import { ptBR } from 'date-fns/locale';
 
 import { cn } from '@/lib/utils';
 
+import { CategoryBadge } from './CategoryBadge';
+import { ChecklistView } from './ChecklistView';
 import { PriorityBadge } from './PriorityBadge';
+import { RecurrenceBadge } from './RecurrenceBadge';
 import { TaskStatusBadge } from './TaskStatusBadge';
+import { TaskQuickActions } from './TaskQuickActions';
 
-import type { Task, TaskStatus } from '@/types';
+import type { Task, TaskStatus, ChecklistItem } from '@/types';
+import type { ClientData } from './TaskQuickActions';
 
 interface TaskCardProps {
   /** Dados da tarefa */
   task: Task;
+  /** Dados do cliente para ações rápidas */
+  clientData?: ClientData | null;
   /** Callback ao mudar status */
   onStatusChange?: (taskId: string, newStatus: TaskStatus) => Promise<void>;
   /** Callback ao clicar no card */
   onClick?: (task: Task) => void;
   /** Callback ao deletar */
   onDelete?: (taskId: string) => Promise<void>;
+  /** Callback ao atualizar checklist */
+  onChecklistUpdate?: (taskId: string, checklist: ChecklistItem[]) => Promise<void>;
+  /** Callback para criar evento no calendário */
+  onCreateCalendarEvent?: (task: Task) => void;
   /** Mostra o nome do cliente */
   showClient?: boolean;
+  /** Mostra o checklist expandido */
+  showChecklist?: boolean;
+  /** Mostra ações rápidas */
+  showQuickActions?: boolean;
   /** Modo compacto */
   compact?: boolean;
   /** Classes adicionais */
@@ -42,14 +57,22 @@ interface TaskCardProps {
  */
 function TaskCard({
   task,
+  clientData,
   onStatusChange,
   onClick,
   onDelete,
+  onChecklistUpdate,
+  onCreateCalendarEvent,
   showClient = true,
+  showChecklist = false,
+  showQuickActions = true,
   compact = false,
   className,
 }: TaskCardProps) {
   const [isUpdating, setIsUpdating] = useState(false);
+  const [isChecklistExpanded, setIsChecklistExpanded] = useState(showChecklist);
+
+  const hasChecklist = task.checklist && task.checklist.length > 0;
 
   const dueDate = parseISO(task.due_date);
   const isOverdue = isPast(dueDate) && !isToday(dueDate) && task.status !== 'done';
@@ -109,6 +132,31 @@ function TaskCard({
     },
     [task.status, handleStatusChange]
   );
+
+  const handleChecklistToggle = useCallback(
+    async (itemId: string) => {
+      if (!onChecklistUpdate || !task.checklist || isUpdating) {
+        return;
+      }
+
+      const updatedChecklist = task.checklist.map((item) =>
+        item.id === itemId ? { ...item, done: !item.done } : item
+      );
+
+      setIsUpdating(true);
+      try {
+        await onChecklistUpdate(task.id, updatedChecklist);
+      } finally {
+        setIsUpdating(false);
+      }
+    },
+    [task.id, task.checklist, onChecklistUpdate, isUpdating]
+  );
+
+  const toggleChecklistExpand = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
+    setIsChecklistExpanded((prev) => !prev);
+  }, []);
 
   if (compact) {
     return (
@@ -219,6 +267,29 @@ function TaskCard({
             {task.description && (
               <p className="text-sm text-zinc-400 mt-1 line-clamp-2">{task.description}</p>
             )}
+
+            {/* Category & Recurrence badges */}
+            {(task.category || task.is_recurring) && (
+              <div className="flex items-center gap-2 mt-2">
+                {task.category && (
+                  <CategoryBadge category={task.category} size="sm" />
+                )}
+                {task.is_recurring && task.recurrence && (
+                  <RecurrenceBadge recurrence={task.recurrence} size="sm" />
+                )}
+              </div>
+            )}
+
+            {/* Quick Actions */}
+            {showQuickActions && task.status !== 'done' && (
+              <TaskQuickActions
+                task={task}
+                clientData={clientData}
+                onCreateCalendarEvent={onCreateCalendarEvent}
+                size="sm"
+                className="mt-2"
+              />
+            )}
           </div>
         </div>
 
@@ -242,6 +313,52 @@ function TaskCard({
           </button>
         )}
       </div>
+
+      {/* Checklist Section */}
+      {hasChecklist && (
+        <div className="mt-3">
+          {/* Toggle button */}
+          <button
+            type="button"
+            onClick={toggleChecklistExpand}
+            className={cn(
+              'flex items-center gap-2 w-full px-3 py-2 rounded-lg',
+              'bg-white/[0.02] hover:bg-white/[0.05]',
+              'border border-white/[0.06]',
+              'text-sm text-zinc-400 hover:text-zinc-300',
+              'transition-all duration-200'
+            )}
+          >
+            <svg
+              className={cn(
+                'w-4 h-4 transition-transform duration-200',
+                isChecklistExpanded && 'rotate-90'
+              )}
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+            </svg>
+            <span>
+              Checklist ({task.checklist?.filter((i) => i.done).length || 0}/{task.checklist?.length || 0})
+            </span>
+          </button>
+
+          {/* Expanded checklist */}
+          {isChecklistExpanded && task.checklist && (
+            <div className="mt-2">
+              <ChecklistView
+                items={task.checklist}
+                onToggleItem={onChecklistUpdate ? handleChecklistToggle : undefined}
+                editable={!!onChecklistUpdate}
+                size="sm"
+                showProgress={false}
+              />
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Footer */}
       <div className="flex items-center justify-between mt-3 pt-3 border-t border-white/[0.06]">

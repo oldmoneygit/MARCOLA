@@ -58,7 +58,7 @@ interface UseTaskTemplatesReturn extends UseTaskTemplatesState {
 function transformDbToFrontend(dbTemplate: Record<string, unknown>): TaskTemplate {
   return {
     id: dbTemplate.id as string,
-    user_id: dbTemplate.user_id as string,
+    user_id: (dbTemplate.user_id as string | null) || null,
     segment: dbTemplate.segment as string,
     title: dbTemplate.title as string,
     description: (dbTemplate.description as string | null) || null,
@@ -75,6 +75,9 @@ function transformDbToFrontend(dbTemplate: Record<string, unknown>): TaskTemplat
     whatsapp_template: (dbTemplate.notify_message as string | null) || null,
     order_index: (dbTemplate.order_index as number) || 0,
     is_active: (dbTemplate.is_active as boolean) ?? true,
+    // Novos campos para templates do sistema
+    category: (dbTemplate.category as TaskTemplate['category']) || 'custom',
+    is_system: dbTemplate.user_id === null,
     created_at: dbTemplate.created_at as string,
     updated_at: dbTemplate.updated_at as string,
   };

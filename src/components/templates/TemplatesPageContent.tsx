@@ -10,15 +10,16 @@ import { useCallback, useMemo, useState } from 'react';
 
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { Button, GlassCard, Modal, Skeleton, EmptyState, Icon } from '@/components/ui';
-import { PriorityBadge } from '@/components/tasks';
+import { PriorityBadge, CategoryBadge, RecurrenceBadge, AddTaskFromTemplateModal } from '@/components/tasks';
 
 import { useTaskTemplates } from '@/hooks';
 
-import type { CreateTaskTemplateDTO, TaskTemplate, TaskPriority, TaskRecurrence } from '@/types';
-import { TASK_PRIORITY_CONFIG, TASK_RECURRENCE_CONFIG } from '@/types';
+import type { CreateTaskTemplateDTO, CreateTaskDTO, TaskTemplate, TaskPriority, TaskRecurrence, TaskCategory } from '@/types';
+import { TASK_PRIORITY_CONFIG, TASK_RECURRENCE_CONFIG, TASK_CATEGORY_CONFIG } from '@/types';
 
 /** Segmentos comuns para templates */
 const COMMON_SEGMENTS = [
+  { value: 'all', label: 'Operacionais (Todos)', icon: 'settings' },
   { value: 'restaurante', label: 'Restaurante', icon: 'delivery' },
   { value: 'academia', label: 'Academia', icon: 'fitness' },
   { value: 'ecommerce', label: 'E-commerce', icon: 'ecommerce' },
@@ -270,11 +271,12 @@ interface TemplateCardProps {
   onEdit: (template: TaskTemplate) => void;
   onDelete: (id: string) => void;
   onToggleActive: (id: string, isActive: boolean) => void;
+  onAssign: (template: TaskTemplate) => void;
 }
 
-function TemplateCard({ template, onEdit, onDelete, onToggleActive }: TemplateCardProps) {
+function TemplateCard({ template, onEdit, onDelete, onToggleActive, onAssign }: TemplateCardProps) {
   const segmentInfo = COMMON_SEGMENTS.find(s => s.value === template.segment);
-  const recurrenceConfig = template.recurrence ? TASK_RECURRENCE_CONFIG[template.recurrence] : null;
+  const isOperational = template.category === 'operational' || template.segment === 'all';
 
   return (
     <div className={`p-4 rounded-xl border transition-colors ${
@@ -290,33 +292,46 @@ function TemplateCard({ template, onEdit, onDelete, onToggleActive }: TemplateCa
               Inativo
             </span>
           )}
+          {template.is_system && (
+            <span className="px-2 py-0.5 text-xs rounded-full bg-violet-500/20 text-violet-400">
+              Sistema
+            </span>
+          )}
         </div>
         <PriorityBadge priority={template.default_priority} size="sm" />
       </div>
 
       {template.description && (
-        <p className="text-sm text-zinc-400 mb-3">{template.description}</p>
+        <p className="text-sm text-zinc-400 mb-3 line-clamp-2">{template.description}</p>
       )}
 
-      <div className="flex flex-wrap items-center gap-2 mb-4 text-xs">
-        {segmentInfo && (
-          <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded-full bg-violet-500/10 text-violet-400">
+      <div className="flex flex-wrap items-center gap-2 mb-4">
+        {/* Category Badge */}
+        {template.category && (
+          <CategoryBadge category={template.category} size="sm" />
+        )}
+
+        {/* Recurrence Badge */}
+        {template.recurrence && (
+          <RecurrenceBadge recurrence={template.recurrence} size="sm" />
+        )}
+
+        {/* Segment (if not operational) */}
+        {!isOperational && segmentInfo && (
+          <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded-full bg-violet-500/10 text-violet-400 text-xs">
             <Icon name={segmentInfo.icon} size="xs" />
             {segmentInfo.label}
           </span>
         )}
-        {!segmentInfo && template.segment && (
-          <span className="px-2 py-1 rounded-full bg-zinc-500/10 text-zinc-400">
+        {!isOperational && !segmentInfo && template.segment && (
+          <span className="px-2 py-1 rounded-full bg-zinc-500/10 text-zinc-400 text-xs">
             {template.segment}
           </span>
         )}
-        {recurrenceConfig && (
-          <span className="px-2 py-1 rounded-full bg-blue-500/10 text-blue-400">
-            {recurrenceConfig.label}
-          </span>
-        )}
+
+        {/* Days offset */}
         {template.default_days_offset > 0 && (
-          <span className="px-2 py-1 rounded-full bg-amber-500/10 text-amber-400">
+          <span className="px-2 py-1 rounded-full bg-amber-500/10 text-amber-400 text-xs">
             D+{template.default_days_offset}
           </span>
         )}
@@ -330,7 +345,16 @@ function TemplateCard({ template, onEdit, onDelete, onToggleActive }: TemplateCa
         >
           {template.is_active ? 'Desativar' : 'Ativar'}
         </button>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3">
+          {/* Botão Atribuir a Cliente */}
+          <button
+            type="button"
+            onClick={() => onAssign(template)}
+            className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium rounded-md bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 transition-colors"
+          >
+            <Icon name="user-plus" size="xs" />
+            Atribuir
+          </button>
           <button
             type="button"
             onClick={() => onEdit(template)}
@@ -359,7 +383,9 @@ export function TemplatesPageContent() {
 
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [editingTemplate, setEditingTemplate] = useState<TaskTemplate | null>(null);
+  const [assigningTemplate, setAssigningTemplate] = useState<TaskTemplate | null>(null);
   const [formLoading, setFormLoading] = useState(false);
+  const [filterCategory, setFilterCategory] = useState<TaskCategory | 'all'>('all');
   const [filterSegment, setFilterSegment] = useState<string>('all');
   const [showInactive, setShowInactive] = useState(false);
 
@@ -373,12 +399,18 @@ export function TemplatesPageContent() {
       filtered = filtered.filter(t => t.is_active);
     }
 
+    // Filter by category
+    if (filterCategory !== 'all') {
+      filtered = filtered.filter(t => t.category === filterCategory);
+    }
+
+    // Filter by segment (only if not filtering all categories or segment is not 'all')
     if (filterSegment !== 'all') {
       filtered = filtered.filter(t => t.segment === filterSegment);
     }
 
     return filtered;
-  }, [templates, filterSegment, showInactive]);
+  }, [templates, filterCategory, filterSegment, showInactive]);
 
   /**
    * Agrupa templates por segmento
@@ -438,6 +470,25 @@ export function TemplatesPageContent() {
     }
   }, [updateTemplate]);
 
+  const handleAssignTemplate = useCallback((template: TaskTemplate) => {
+    setAssigningTemplate(template);
+  }, []);
+
+  const handleCreateTaskFromTemplate = useCallback(async (data: CreateTaskDTO) => {
+    const response = await fetch('/api/tasks', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error || 'Erro ao criar tarefa');
+    }
+
+    setAssigningTemplate(null);
+  }, []);
+
   // Loading state
   if (loading) {
     return (
@@ -463,6 +514,24 @@ export function TemplatesPageContent() {
     >
       {/* Filtros */}
       <div className="flex flex-wrap items-center gap-4 mb-6">
+        {/* Category filter */}
+        <div className="flex items-center gap-2">
+          <span className="text-xs text-zinc-400">Categoria:</span>
+          <select
+            value={filterCategory}
+            onChange={e => setFilterCategory(e.target.value as TaskCategory | 'all')}
+            className="px-3 py-2 text-sm rounded-lg bg-zinc-900/80 border border-zinc-700/50 text-white focus:outline-none focus:border-violet-500/50 focus:ring-1 focus:ring-violet-500/30 transition-colors cursor-pointer hover:border-zinc-600/70"
+          >
+            <option value="all" className="bg-zinc-900 text-white">Todas</option>
+            {Object.entries(TASK_CATEGORY_CONFIG).map(([key, config]) => (
+              <option key={key} value={key} className="bg-zinc-900 text-white">
+                {config.label}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        {/* Segment filter */}
         <div className="flex items-center gap-2">
           <span className="text-xs text-zinc-400">Segmento:</span>
           <select
@@ -527,6 +596,7 @@ export function TemplatesPageContent() {
                       onEdit={setEditingTemplate}
                       onDelete={handleDeleteTemplate}
                       onToggleActive={handleToggleActive}
+                      onAssign={handleAssignTemplate}
                     />
                   ))}
                 </div>
@@ -566,6 +636,14 @@ export function TemplatesPageContent() {
           />
         )}
       </Modal>
+
+      {/* Modal de atribuição a cliente */}
+      <AddTaskFromTemplateModal
+        isOpen={!!assigningTemplate}
+        onClose={() => setAssigningTemplate(null)}
+        selectedTemplate={assigningTemplate || undefined}
+        onSubmit={handleCreateTaskFromTemplate}
+      />
     </DashboardLayout>
   );
 }

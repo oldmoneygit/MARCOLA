@@ -39,11 +39,17 @@ export async function GET(request: NextRequest) {
     const segment = searchParams.get('segment');
     const isActive = searchParams.get('is_active');
 
-    let query = supabase.from('task_templates').select('*').eq('user_id', user.id);
+    // Busca templates do usuário E templates do sistema (user_id = null)
+    let query = supabase
+      .from('task_templates')
+      .select('*')
+      .or(`user_id.eq.${user.id},user_id.is.null`);
 
-    if (segment) {
-      query = query.eq('segment', segment);
+    if (segment && segment !== 'all') {
+      // Filtra por segmento específico OU templates 'all' (operacionais)
+      query = query.in('segment', [segment, 'all']);
     }
+
     if (isActive !== null) {
       query = query.eq('is_active', isActive === 'true');
     }
