@@ -4,6 +4,12 @@
  * @module components/tasks
  */
 
+export { CategoryBadge } from './CategoryBadge';
+export type { CategoryBadgeProps } from './CategoryBadge';
+
+export { ChecklistView } from './ChecklistView';
+export type { ChecklistViewProps } from './ChecklistView';
+
 export { NoteCard } from './NoteCard';
 export type { NoteCardProps } from './NoteCard';
 
@@ -12,6 +18,9 @@ export type { NoteFormProps } from './NoteForm';
 
 export { PriorityBadge } from './PriorityBadge';
 export type { PriorityBadgeProps } from './PriorityBadge';
+
+export { RecurrenceBadge } from './RecurrenceBadge';
+export type { RecurrenceBadgeProps } from './RecurrenceBadge';
 
 export { TaskCard } from './TaskCard';
 export type { TaskCardProps } from './TaskCard';

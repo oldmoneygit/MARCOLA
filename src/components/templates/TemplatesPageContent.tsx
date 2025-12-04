@@ -387,7 +387,7 @@ export function TemplatesPageContent() {
     const groups: Record<string, TaskTemplate[]> = {};
 
     filteredTemplates.forEach(template => {
-      const segment = template.segment;
+      const segment = template.segment ?? 'Sem Segmento';
       (groups[segment] ??= []).push(template);
     });
 

@@ -14,3 +14,6 @@ export * from './task';
 export * from './calendar';
 export * from './briefing';
 export * from './intelligence';
+export * from './audit';
+export * from './checklist';
+export * from './health-score';

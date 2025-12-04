@@ -269,7 +269,9 @@ export function useTaskTemplates(options: UseTaskTemplatesOptions = {}): UseTask
   );
 
   const segments = useMemo(() => {
-    const uniqueSegments = Array.from(new Set(state.templates.map((t) => t.segment)));
+    const uniqueSegments = Array.from(
+      new Set(state.templates.map((t) => t.segment).filter((s): s is string => s !== null))
+    );
     return uniqueSegments.sort();
   }, [state.templates]);
 
