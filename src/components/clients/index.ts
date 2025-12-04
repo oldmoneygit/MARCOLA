@@ -13,6 +13,7 @@ export { ClientFilters, useClientFilters } from './ClientFilters';
 export { ClientForm } from './ClientForm';
 export { ClientFormStepper } from './ClientFormStepper';
 export { ClientList } from './ClientList';
+export { HealthScoreCard } from './HealthScoreCard';
 export { ClientPreviewCard } from './ClientPreviewCard';
 export { ClientsPageContent } from './ClientsPageContent';
 export { CredentialsList } from './CredentialsList';
