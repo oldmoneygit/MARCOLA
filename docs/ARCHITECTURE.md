@@ -1,4 +1,4 @@
-# ARCHITECTURE.md - Arquitetura Técnica do TrafficHub
+# ARCHITECTURE.md - Arquitetura Técnica do MARCOLA
 
 ---
 
@@ -18,7 +18,7 @@
 
 ## 🏗 Visão Geral
 
-O TrafficHub utiliza uma arquitetura moderna baseada em:
+O MARCOLA utiliza uma arquitetura moderna baseada em:
 
 - **Frontend**: Next.js 14 com App Router (Server Components + Client Components)
 - **Backend**: API Routes do Next.js + Supabase
@@ -83,7 +83,7 @@ O TrafficHub utiliza uma arquitetura moderna baseada em:
 ## 📁 Estrutura de Pastas
 
 ```
-traffichub/
+marcola/
 │
 ├── 📁 .github/
 │   └── 📁 workflows/
@@ -99,6 +99,7 @@ traffichub/
 │
 ├── 📁 public/                     # Assets estáticos
 │   ├── favicon.ico
+│   ├── 📁 fonts/                  # Fontes (LT Superior, etc)
 │   └── 📁 images/
 │
 ├── 📁 src/
