@@ -32,7 +32,7 @@ const config: Config = {
         },
       },
       fontFamily: {
-        sans: ['Inter', 'system-ui', 'sans-serif'],
+        sans: ['LT Superior', 'system-ui', 'sans-serif'],
       },
       backdropBlur: {
         xs: '2px',

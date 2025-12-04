@@ -179,7 +179,7 @@ export function DashboardPageContent() {
       title="Dashboard"
       subtitle="Visão geral do desempenho das campanhas"
     >
-      {/* Métricas principais */}
+      {/* Métricas principais - com cores distintas e borda 3D */}
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 mb-8">
         <MetricCard
           title="Investimento Total"
@@ -187,6 +187,7 @@ export function DashboardPageContent() {
           icon={MetricIcons.investment}
           change={data?.investmentChange || 0}
           trendLabel="vs. mês anterior"
+          accent="emerald"
         />
 
         <MetricCard
@@ -195,6 +196,7 @@ export function DashboardPageContent() {
           icon={MetricIcons.clients}
           change={data?.clientsChange || 0}
           trendLabel="vs. mês anterior"
+          accent="blue"
         />
 
         <MetricCard
@@ -204,6 +206,7 @@ export function DashboardPageContent() {
           change={data?.cpaChange || 0}
           positiveIsGood={false}
           trendLabel="vs. mês anterior"
+          accent="violet"
         />
 
         <MetricCard
@@ -213,10 +216,20 @@ export function DashboardPageContent() {
           change={data?.alertsChange || 0}
           positiveIsGood={false}
           trendLabel="pendentes"
+          accent="amber"
         />
       </div>
 
-      {/* Grid de conteúdo */}
+      {/* Seção Principal - Tarefas e Calendário (mais importante para rotina) */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+        {/* Tarefas de Hoje - Prioridade máxima */}
+        <TodayTasksWidget />
+
+        {/* Próximos Conteúdos */}
+        <UpcomingEventsWidget />
+      </div>
+
+      {/* Seção Secundária - Alertas e Clientes */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Alertas e Sugestões */}
         <div className="lg:col-span-2">
@@ -323,15 +336,6 @@ export function DashboardPageContent() {
             </Link>
           </GlassCard>
         </div>
-      </div>
-
-      {/* Grid de Tarefas e Calendário */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
-        {/* Tarefas de Hoje */}
-        <TodayTasksWidget />
-
-        {/* Próximos Conteúdos */}
-        <UpcomingEventsWidget />
       </div>
     </DashboardLayout>
   );

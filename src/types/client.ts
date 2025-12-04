@@ -63,6 +63,7 @@ export interface Client {
 
   // Links e recursos
   ads_account_url: string | null;
+  google_ads_account_url: string | null;
   website_url: string | null;
   drive_url: string | null;
   menu_url: string | null;
@@ -141,6 +142,7 @@ export interface CreateClientDTO {
 
   // Links e recursos (opcionais)
   ads_account_url?: string;
+  google_ads_account_url?: string;
   website_url?: string;
   drive_url?: string;
   menu_url?: string;

@@ -1,13 +1,18 @@
 /**
  * @file constants.ts
- * @description Constantes globais da aplicação TrafficHub
+ * @description Constantes globais da aplicação MARCOLA
  * @module lib
  */
 
 /**
  * Nome da aplicação
  */
-export const APP_NAME = 'TrafficHub';
+export const APP_NAME = 'MARCOLA';
+
+/**
+ * Nome completo da aplicação
+ */
+export const APP_FULL_NAME = 'MARCOLA Gestor de Tráfegos';
 
 /**
  * Rotas da aplicação

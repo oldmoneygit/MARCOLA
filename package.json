@@ -1,9 +1,9 @@
 {
-  "name": "traffichub",
+  "name": "marcola",
   "version": "0.1.0",
   "private": true,
-  "description": "Sistema de gestão para agências de tráfego pago",
-  "author": "TrafficHub Team",
+  "description": "MARCOLA - Gestor de Tráfegos | Sistema de gestão para agências de tráfego pago",
+  "author": "MARCOLA Team",
   "scripts": {
     "dev": "next dev",
     "build": "next build",

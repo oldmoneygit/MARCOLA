@@ -192,70 +192,71 @@ export function ClientsPageContent() {
       subtitle="Gerencie seus clientes de tráfego pago"
       headerActions={
         <div className="relative" ref={dropdownRef}>
-          {/* Botão principal com dropdown */}
-          <div className="flex items-center">
-            <Button
-              onClick={() => handleNewClient('form')}
-              leftIcon={
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M12 4v16m8-8H4"
-                  />
-                </svg>
-              }
-              className="rounded-r-none"
+          {/* Botão principal unificado */}
+          <button
+            onClick={toggleDropdown}
+            className="group flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white font-medium shadow-lg shadow-violet-500/25 hover:shadow-violet-500/40 transition-all duration-300"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+            </svg>
+            <span>Novo Cliente</span>
+            <div className="w-px h-4 bg-white/20 mx-1" />
+            <svg
+              className={`w-4 h-4 transition-transform duration-200 ${showDropdown ? 'rotate-180' : ''}`}
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
             >
-              Novo Cliente
-            </Button>
-            <Button
-              onClick={toggleDropdown}
-              className="rounded-l-none border-l border-white/20 px-2"
-              aria-label="Mais opções"
-            >
-              <svg className={`w-4 h-4 transition-transform ${showDropdown ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-              </svg>
-            </Button>
-          </div>
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+            </svg>
+          </button>
 
           {/* Dropdown menu */}
           {showDropdown && (
-            <div className="absolute right-0 mt-2 w-64 rounded-xl bg-[#1a1a2e] border border-white/[0.08] shadow-xl z-50 overflow-hidden animate-fade-in">
-              <button
-                onClick={() => handleNewClient('form')}
-                className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-white/[0.05] transition-colors"
-              >
-                <div className="w-10 h-10 rounded-lg bg-violet-500/20 flex items-center justify-center">
-                  <svg className="w-5 h-5 text-violet-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            <div className="absolute right-0 mt-2 w-72 rounded-2xl bg-[#12121a] border border-white/[0.08] shadow-2xl shadow-black/50 z-50 overflow-hidden animate-scale-in">
+              <div className="p-1.5">
+                <button
+                  onClick={() => handleNewClient('form')}
+                  className="w-full flex items-center gap-3 p-3 rounded-xl text-left hover:bg-white/[0.05] transition-all duration-200 group"
+                >
+                  <div className="w-11 h-11 rounded-xl bg-violet-500/10 group-hover:bg-violet-500/20 flex items-center justify-center transition-colors">
+                    <svg className="w-5 h-5 text-violet-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-sm font-medium text-white">Formulário</p>
+                    <p className="text-xs text-zinc-500">Preencha campo por campo</p>
+                  </div>
+                  <svg className="w-4 h-4 text-zinc-500 group-hover:text-violet-400 group-hover:translate-x-0.5 transition-all" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                   </svg>
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-white">Formulário Tradicional</p>
-                  <p className="text-xs text-zinc-500">Preencha campo por campo</p>
-                </div>
-              </button>
+                </button>
 
-              <button
-                onClick={() => handleNewClient('smart')}
-                className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-white/[0.05] transition-colors border-t border-white/[0.05]"
-              >
-                <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-violet-500/20 to-indigo-500/20 flex items-center justify-center">
-                  <svg className="w-5 h-5 text-violet-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                <button
+                  onClick={() => handleNewClient('smart')}
+                  className="w-full flex items-center gap-3 p-3 rounded-xl text-left hover:bg-gradient-to-r hover:from-violet-500/10 hover:to-indigo-500/10 transition-all duration-200 group"
+                >
+                  <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-violet-500/20 to-indigo-500/20 group-hover:from-violet-500/30 group-hover:to-indigo-500/30 flex items-center justify-center transition-all">
+                    <svg className="w-5 h-5 text-violet-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                    </svg>
+                  </div>
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2">
+                      <p className="text-sm font-medium text-white">Modo IA</p>
+                      <span className="px-1.5 py-0.5 text-[9px] font-semibold bg-gradient-to-r from-violet-500 to-indigo-500 text-white rounded-md uppercase tracking-wide">
+                        Beta
+                      </span>
+                    </div>
+                    <p className="text-xs text-zinc-500">Digite ou fale - a IA organiza</p>
+                  </div>
+                  <svg className="w-4 h-4 text-zinc-500 group-hover:text-violet-400 group-hover:translate-x-0.5 transition-all" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                   </svg>
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-white">Modo Inteligente</p>
-                  <p className="text-xs text-zinc-500">Digite ou fale - a IA organiza</p>
-                </div>
-                <span className="ml-auto px-2 py-0.5 text-[10px] font-medium bg-gradient-to-r from-violet-500 to-indigo-500 text-white rounded-full">
-                  NOVO
-                </span>
-              </button>
+                </button>
+              </div>
             </div>
           )}
         </div>

@@ -27,6 +27,54 @@ import { GlassCard } from './GlassCard';
 
 type TrendDirection = 'up' | 'down' | 'neutral';
 
+/** Cores de destaque disponíveis para MetricCard */
+type AccentColor = 'violet' | 'emerald' | 'amber' | 'rose' | 'blue' | 'cyan';
+
+/** Configuração de cores de destaque */
+const ACCENT_COLORS: Record<AccentColor, {
+  border: string;
+  iconBg: string;
+  iconColor: string;
+  glow: string;
+}> = {
+  violet: {
+    border: 'border-l-violet-500',
+    iconBg: 'bg-violet-500/10',
+    iconColor: 'text-violet-400',
+    glow: 'shadow-violet-500/10',
+  },
+  emerald: {
+    border: 'border-l-emerald-500',
+    iconBg: 'bg-emerald-500/10',
+    iconColor: 'text-emerald-400',
+    glow: 'shadow-emerald-500/10',
+  },
+  amber: {
+    border: 'border-l-amber-500',
+    iconBg: 'bg-amber-500/10',
+    iconColor: 'text-amber-400',
+    glow: 'shadow-amber-500/10',
+  },
+  rose: {
+    border: 'border-l-rose-500',
+    iconBg: 'bg-rose-500/10',
+    iconColor: 'text-rose-400',
+    glow: 'shadow-rose-500/10',
+  },
+  blue: {
+    border: 'border-l-blue-500',
+    iconBg: 'bg-blue-500/10',
+    iconColor: 'text-blue-400',
+    glow: 'shadow-blue-500/10',
+  },
+  cyan: {
+    border: 'border-l-cyan-500',
+    iconBg: 'bg-cyan-500/10',
+    iconColor: 'text-cyan-400',
+    glow: 'shadow-cyan-500/10',
+  },
+};
+
 interface MetricCardProps {
   /** Título da métrica */
   title: string;
@@ -44,6 +92,8 @@ interface MetricCardProps {
   positiveIsGood?: boolean;
   /** Se está carregando */
   loading?: boolean;
+  /** Cor de destaque (borda 3D à esquerda) */
+  accent?: AccentColor;
   /** Classes adicionais */
   className?: string;
 }
@@ -71,6 +121,7 @@ function MetricCard({
   trendLabel,
   positiveIsGood = true,
   loading = false,
+  accent,
   className,
 }: MetricCardProps) {
   const trendDirection = trend ?? getTrendDirection(change);
@@ -92,8 +143,22 @@ function MetricCard({
     return isPositiveTrend ? trendColors.positive : trendColors.negative;
   };
 
+  // Configuração de cor de destaque
+  const accentConfig = accent ? ACCENT_COLORS[accent] : null;
+
   return (
-    <GlassCard hover className={cn('relative overflow-hidden', className)}>
+    <GlassCard
+      hover
+      className={cn(
+        'relative overflow-hidden',
+        // Borda 3D à esquerda quando tem accent
+        accent && 'border-l-[3px]',
+        accentConfig?.border,
+        // Sombra sutil com a cor do accent
+        accent && `shadow-lg ${accentConfig?.glow}`,
+        className
+      )}
+    >
       {/* Background gradient decorativo sutil */}
       <div
         className={cn(
@@ -109,7 +174,10 @@ function MetricCard({
         <div className="flex items-start justify-between mb-4">
           <span className="text-sm text-zinc-400">{title}</span>
           {icon && (
-            <div className="p-2 rounded-xl bg-white/[0.05] text-zinc-400">
+            <div className={cn(
+              'p-2 rounded-xl',
+              accentConfig ? `${accentConfig.iconBg} ${accentConfig.iconColor}` : 'bg-white/[0.05] text-zinc-400'
+            )}>
               {icon}
             </div>
           )}
@@ -194,4 +262,4 @@ function MetricCard({
 }
 
 export { MetricCard };
-export type { MetricCardProps, TrendDirection };
+export type { MetricCardProps, TrendDirection, AccentColor };

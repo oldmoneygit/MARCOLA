@@ -1,6 +1,6 @@
 /**
  * @file layout.tsx
- * @description Root layout da aplicação TrafficHub
+ * @description Root layout da aplicação MARCOLA Gestor de Tráfegos
  * @module app
  *
  * @example
@@ -8,24 +8,16 @@
  * Configura fonte, metadata, e providers globais.
  */
 
-import { Inter } from 'next/font/google';
-
 import { Providers } from '@/components/Providers';
 
 import type { Metadata, Viewport } from 'next';
 
 import './globals.css';
 
-const inter = Inter({
-  subsets: ['latin'],
-  display: 'swap',
-  variable: '--font-inter',
-});
-
 export const metadata: Metadata = {
   title: {
-    default: 'TrafficHub - Gestão de Tráfego Pago',
-    template: '%s | TrafficHub',
+    default: 'MARCOLA - Gestor de Tráfegos',
+    template: '%s | MARCOLA',
   },
   description:
     'Sistema de gestão para agências de tráfego pago. Gerencie clientes, relatórios, cobranças e análises em um só lugar.',
@@ -34,11 +26,13 @@ export const metadata: Metadata = {
     'gestão de anúncios',
     'meta ads',
     'facebook ads',
+    'google ads',
     'agência digital',
     'dashboard',
+    'marcola',
   ],
-  authors: [{ name: 'TrafficHub Team' }],
-  creator: 'TrafficHub',
+  authors: [{ name: 'MARCOLA Team' }],
+  creator: 'MARCOLA',
   robots: {
     index: false,
     follow: false,
@@ -61,8 +55,8 @@ interface RootLayoutProps {
 
 export default function RootLayout({ children }: RootLayoutProps) {
   return (
-    <html lang="pt-BR" data-theme="dark" className={inter.variable}>
-      <body className={inter.className}>
+    <html lang="pt-BR" data-theme="dark">
+      <body>
         {/* Background decorativo global */}
         <div className="fixed inset-0 bg-mesh pointer-events-none" />
 

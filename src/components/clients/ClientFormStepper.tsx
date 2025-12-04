@@ -94,6 +94,7 @@ export function ClientFormStepper({
     instagram_url: client?.instagram_url || initialData?.instagram_url || '',
     // Links e recursos
     ads_account_url: client?.ads_account_url || initialData?.ads_account_url || '',
+    google_ads_account_url: client?.google_ads_account_url || initialData?.google_ads_account_url || '',
     website_url: client?.website_url || initialData?.website_url || '',
     drive_url: client?.drive_url || initialData?.drive_url || '',
     menu_url: client?.menu_url || initialData?.menu_url || '',
@@ -159,6 +160,7 @@ export function ClientFormStepper({
         contact_email: client.contact_email || '',
         instagram_url: client.instagram_url || '',
         ads_account_url: client.ads_account_url || '',
+        google_ads_account_url: client.google_ads_account_url || '',
         website_url: client.website_url || '',
         drive_url: client.drive_url || '',
         menu_url: client.menu_url || '',
@@ -551,15 +553,37 @@ export function ClientFormStepper({
           {/* Step 4: Links & Recursos */}
           {currentStep === 4 && (
             <div className="space-y-6 animate-fade-in">
-              <FormSection title="Conta de Anúncios" icon="bar-chart-2">
-                <Input
-                  label="Link da Conta de Anúncios"
-                  name="ads_account_url"
-                  value={formData.ads_account_url || ''}
-                  onChange={handleChange}
-                  placeholder="https://business.facebook.com/..."
-                  autoFocus
-                />
+              <FormSection title="Contas de Anúncios" icon="bar-chart-2">
+                <div className="grid grid-cols-2 gap-4">
+                  {/* Meta Ads - Blue accent */}
+                  <div className="relative">
+                    <div className="absolute left-0 top-0 bottom-0 w-1 rounded-l-xl bg-blue-500/60" />
+                    <div className="pl-4">
+                      <Input
+                        label="Meta Ads (Facebook/Instagram)"
+                        name="ads_account_url"
+                        value={formData.ads_account_url || ''}
+                        onChange={handleChange}
+                        placeholder="https://business.facebook.com/..."
+                        autoFocus
+                      />
+                    </div>
+                  </div>
+
+                  {/* Google Ads - Orange/Red accent */}
+                  <div className="relative">
+                    <div className="absolute left-0 top-0 bottom-0 w-1 rounded-l-xl bg-amber-500/60" />
+                    <div className="pl-4">
+                      <Input
+                        label="Google Ads"
+                        name="google_ads_account_url"
+                        value={formData.google_ads_account_url || ''}
+                        onChange={handleChange}
+                        placeholder="https://ads.google.com/..."
+                      />
+                    </div>
+                  </div>
+                </div>
               </FormSection>
 
               <FormSection title="Presença Digital" icon="globe">
