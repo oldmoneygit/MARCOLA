@@ -13,10 +13,12 @@ import Image from 'next/image';
 import { useCallback, useMemo, useState } from 'react';
 
 import { Button, GlassCard, StatusBadge } from '@/components/ui';
+import { TaskQuickActions, detectTaskType } from '@/components/tasks';
 import { CLIENT_STATUS, SEGMENTS } from '@/lib/constants';
 import { formatCurrency } from '@/lib/utils';
 
 import type { Client, Task, TaskPriority } from '@/types';
+import type { ClientData } from '@/components/tasks/TaskQuickActions';
 import { TASK_RECURRENCE_CONFIG } from '@/types/task';
 
 /** Configuração de cores por prioridade de tarefa */
@@ -134,6 +136,19 @@ export function ClientCard({
   const statusConfig = CLIENT_STATUS[client.status];
   const segmentLabel = SEGMENTS.find((s) => s.value === client.segment)?.label || client.segment;
   const hasPendingTasks = pendingTasks.length > 0;
+
+  // Dados do cliente para ações rápidas
+  const clientData: ClientData = useMemo(() => ({
+    id: client.id,
+    name: client.name,
+    contact_phone: client.contact_phone,
+    contact_email: client.contact_email,
+    contact_name: client.contact_name,
+    drive_url: client.drive_url,
+    ads_account_url: client.ads_account_url,
+    google_ads_account_url: client.google_ads_account_url,
+    instagram_url: client.instagram_url,
+  }), [client]);
 
   // Ordena tarefas por prioridade e data
   const sortedTasks = useMemo(() => {
@@ -472,6 +487,16 @@ export function ClientCard({
                             {recurrenceLabel || 'Recorrente'}
                           </span>
                         </span>
+                      )}
+
+                      {/* Ações Rápidas */}
+                      {detectTaskType(task.title) && (
+                        <TaskQuickActions
+                          task={task}
+                          clientData={clientData}
+                          size="sm"
+                          className="ml-auto"
+                        />
                       )}
                     </div>
                   </div>
