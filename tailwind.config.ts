@@ -9,26 +9,46 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        // Custom glass colors - Refined
+        // Custom glass colors - Dark Theme with Emerald Teal Accents
         glass: {
-          DEFAULT: 'rgba(255, 255, 255, 0.025)',
-          hover: 'rgba(255, 255, 255, 0.05)',
+          DEFAULT: 'rgba(255, 255, 255, 0.03)',
+          hover: 'rgba(255, 255, 255, 0.06)',
           active: 'rgba(255, 255, 255, 0.08)',
-          border: 'rgba(255, 255, 255, 0.06)',
-          'border-hover': 'rgba(255, 255, 255, 0.12)',
+          border: 'rgba(255, 255, 255, 0.08)',
+          'border-hover': 'rgba(255, 255, 255, 0.15)',
         },
-        // Background - Deeper
+        // Background - Dark Mode
         background: {
-          primary: '#09090d',
-          secondary: '#0f0f15',
-          tertiary: '#16161f',
-          elevated: '#1c1c27',
+          primary: '#0a0a0f',
+          secondary: '#111114',
+          tertiary: '#18181b',
+          elevated: '#1f1f23',
         },
-        // Accent - Brighter
+        // Accent - Soft Teal & Rose
         accent: {
-          DEFAULT: '#a78bfa',
-          secondary: '#818cf8',
-          dark: '#7c3aed',
+          DEFAULT: '#BDCDCF',
+          secondary: '#E3B8B8',
+          tertiary: '#8FAAAD',
+          dark: '#5A7A7D',
+        },
+        // Teal Theme Colors
+        teal: {
+          50: '#E6F2F1',
+          100: '#BDCDCF',
+          200: '#8FAAAD',
+          300: '#6B8A8D',
+          400: '#5A7A7D',
+          500: '#034C36',
+          600: '#004442',
+          700: '#003332',
+          800: '#002524',
+          900: '#001A19',
+        },
+        // Rose Accent
+        rose: {
+          light: '#E3B8B8',
+          DEFAULT: '#D4A5A5',
+          dark: '#B08888',
         },
       },
       fontFamily: {
@@ -38,11 +58,14 @@ const config: Config = {
         xs: '2px',
       },
       boxShadow: {
-        'glass': '0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -2px rgba(0, 0, 0, 0.2), inset 0 1px 0 0 rgba(255, 255, 255, 0.03)',
-        'glass-hover': '0 10px 15px -3px rgba(0, 0, 0, 0.4), 0 4px 6px -4px rgba(0, 0, 0, 0.3), inset 0 1px 0 0 rgba(255, 255, 255, 0.05)',
-        'glow-purple': '0 0 30px rgba(167, 139, 250, 0.25), 0 0 60px rgba(167, 139, 250, 0.1)',
-        'glow-blue': '0 0 30px rgba(96, 165, 250, 0.25), 0 0 60px rgba(96, 165, 250, 0.1)',
-        'glow-green': '0 0 30px rgba(52, 211, 153, 0.25), 0 0 60px rgba(52, 211, 153, 0.1)',
+        'glass': '0 8px 32px rgba(0, 0, 0, 0.4), inset 0 1px 0 0 rgba(255, 255, 255, 0.03)',
+        'glass-hover': '0 12px 40px rgba(0, 0, 0, 0.5), inset 0 1px 0 0 rgba(255, 255, 255, 0.05)',
+        'glow-teal': '0 0 30px rgba(189, 205, 207, 0.3), 0 0 60px rgba(189, 205, 207, 0.15)',
+        'glow-rose': '0 0 30px rgba(227, 184, 184, 0.3), 0 0 60px rgba(227, 184, 184, 0.15)',
+        'glow-green': '0 0 30px rgba(126, 212, 166, 0.3), 0 0 60px rgba(126, 212, 166, 0.15)',
+        // Legacy shadows for compatibility
+        'glow-purple': '0 0 30px rgba(189, 205, 207, 0.25), 0 0 60px rgba(189, 205, 207, 0.1)',
+        'glow-blue': '0 0 30px rgba(143, 170, 173, 0.25), 0 0 60px rgba(143, 170, 173, 0.1)',
       },
       animation: {
         'float': 'float 6s ease-in-out infinite',
@@ -80,25 +103,26 @@ const config: Config = {
     themes: [
       {
         dark: {
-          'primary': '#a78bfa',
-          'primary-content': '#ffffff',
-          'secondary': '#818cf8',
-          'secondary-content': '#ffffff',
-          'accent': '#c084fc',
-          'accent-content': '#ffffff',
-          'neutral': '#16161f',
-          'neutral-content': '#a8a8b3',
-          'base-100': '#09090d',
-          'base-200': '#0f0f15',
-          'base-300': '#16161f',
-          'base-content': '#fafafa',
-          'info': '#60a5fa',
-          'info-content': '#ffffff',
-          'success': '#34d399',
-          'success-content': '#ffffff',
-          'warning': '#fbbf24',
-          'warning-content': '#000000',
-          'error': '#f87171',
+          // Dark Theme with Emerald Teal Accents
+          'primary': '#BDCDCF',
+          'primary-content': '#0a0a0f',
+          'secondary': '#E3B8B8',
+          'secondary-content': '#0a0a0f',
+          'accent': '#8FAAAD',
+          'accent-content': '#0a0a0f',
+          'neutral': '#18181b',
+          'neutral-content': '#BDCDCF',
+          'base-100': '#0a0a0f',
+          'base-200': '#111114',
+          'base-300': '#18181b',
+          'base-content': '#ffffff',
+          'info': '#BDCDCF',
+          'info-content': '#0a0a0f',
+          'success': '#7ED4A6',
+          'success-content': '#0a0a0f',
+          'warning': '#E3B8B8',
+          'warning-content': '#0a0a0f',
+          'error': '#E57373',
           'error-content': '#ffffff',
         },
       },

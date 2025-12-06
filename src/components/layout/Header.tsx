@@ -93,9 +93,9 @@ function UserMenu({
         <div
           className={cn(
             'w-9 h-9 rounded-xl',
-            'bg-gradient-to-br from-violet-600 to-indigo-600',
+            'bg-gradient-to-br from-[#BDCDCF] to-[#8FAAAD]',
             'flex items-center justify-center',
-            'text-white text-sm font-medium'
+            'text-[#003332] text-sm font-medium'
           )}
         >
           {avatarUrl ? (
@@ -113,13 +113,13 @@ function UserMenu({
         {/* User info */}
         <div className="hidden md:block text-left">
           <div className="text-sm font-medium text-white">{name}</div>
-          <div className="text-xs text-zinc-400">{email}</div>
+          <div className="text-xs text-[#8FAAAD]">{email}</div>
         </div>
 
         {/* Chevron */}
         <svg
           className={cn(
-            'w-4 h-4 text-zinc-400 transition-transform duration-200',
+            'w-4 h-4 text-[#8FAAAD] transition-transform duration-200',
             isOpen && 'rotate-180'
           )}
           fill="none"
@@ -153,7 +153,7 @@ function UserMenu({
           >
             <div className="px-4 py-2 border-b border-white/[0.08]">
               <div className="text-sm font-medium text-white">{name}</div>
-              <div className="text-xs text-zinc-400">{email}</div>
+              <div className="text-xs text-[#8FAAAD]">{email}</div>
             </div>
 
             <div className="py-1">
@@ -161,7 +161,7 @@ function UserMenu({
                 onClick={() => handleNavigate(ROUTES.PROFILE)}
                 className={cn(
                   'flex items-center gap-3 w-full px-4 py-2',
-                  'text-sm text-zinc-300 hover:text-white',
+                  'text-sm text-[#BDCDCF] hover:text-white',
                   'hover:bg-white/[0.05] transition-colors'
                 )}
               >
@@ -180,7 +180,7 @@ function UserMenu({
                 onClick={() => handleNavigate(ROUTES.SETTINGS)}
                 className={cn(
                   'flex items-center gap-3 w-full px-4 py-2',
-                  'text-sm text-zinc-300 hover:text-white',
+                  'text-sm text-[#BDCDCF] hover:text-white',
                   'hover:bg-white/[0.05] transition-colors'
                 )}
               >
@@ -208,8 +208,8 @@ function UserMenu({
                 disabled={isLoggingOut}
                 className={cn(
                   'flex items-center gap-3 w-full px-4 py-2',
-                  'text-sm text-red-400 hover:text-red-300',
-                  'hover:bg-red-500/10 transition-colors',
+                  'text-sm text-[#E57373] hover:text-[#EF9A9A]',
+                  'hover:bg-[#E57373]/10 transition-colors',
                   isLoggingOut && 'opacity-50 cursor-not-allowed'
                 )}
               >
@@ -290,7 +290,7 @@ function Header({
               onClick={onMenuClick}
               className={cn(
                 'lg:hidden p-2 rounded-lg',
-                'text-zinc-400 hover:text-white',
+                'text-[#8FAAAD] hover:text-white',
                 'hover:bg-white/[0.05]',
                 'transition-colors duration-200'
               )}
@@ -310,7 +310,7 @@ function Header({
           {/* Title section */}
           <div>
             <h1 className="text-xl font-semibold text-white">{title}</h1>
-            {subtitle && <p className="text-sm text-zinc-400">{subtitle}</p>}
+            {subtitle && <p className="text-sm text-[#8FAAAD]">{subtitle}</p>}
           </div>
         </div>
 
@@ -323,7 +323,7 @@ function Header({
           <button
             className={cn(
               'relative p-2 rounded-lg',
-              'text-zinc-400 hover:text-white',
+              'text-[#8FAAAD] hover:text-white',
               'hover:bg-white/[0.05]',
               'transition-colors duration-200'
             )}
@@ -339,7 +339,7 @@ function Header({
             </svg>
             {/* Notification badge */}
             <span
-              className={cn('absolute top-1.5 right-1.5', 'w-2 h-2 rounded-full', 'bg-violet-500')}
+              className={cn('absolute top-1.5 right-1.5', 'w-2 h-2 rounded-full', 'bg-[#BDCDCF]')}
             />
           </button>
 

@@ -10,37 +10,52 @@ import Link from 'next/link';
 import { useCallback, useEffect, useState } from 'react';
 import { format, parseISO, isToday, isTomorrow, addDays, isBefore } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import {
+  Smartphone,
+  Camera,
+  Film,
+  Video,
+  LayoutGrid,
+  Radio,
+  Megaphone,
+  FileText,
+  Mail,
+  Pin,
+  Calendar,
+} from 'lucide-react';
 
-import { GlassCard } from '@/components/ui';
+import { GlassCard, Icon } from '@/components/ui';
+import { PLATFORM_CONFIG } from '@/types/calendar';
 
-import type { CalendarEvent, ContentStatus } from '@/types';
+import type { CalendarEvent, ContentStatus, Platform } from '@/types';
 
 interface UpcomingEventsWidgetProps {
   /** Número máximo de eventos a exibir */
   maxEvents?: number;
 }
 
+/** Configuração de status - Emerald Teal Theme */
 const STATUS_CONFIG: Record<ContentStatus, { label: string; color: string }> = {
-  planned: { label: 'Planejado', color: 'bg-zinc-500' },
-  creating: { label: 'Criando', color: 'bg-yellow-500' },
-  review: { label: 'Revisão', color: 'bg-blue-500' },
-  approved: { label: 'Aprovado', color: 'bg-emerald-500' },
-  published: { label: 'Publicado', color: 'bg-green-500' },
-  cancelled: { label: 'Cancelado', color: 'bg-red-500' },
+  planned: { label: 'Planejado', color: 'bg-[#6B8A8D]' },
+  creating: { label: 'Criando', color: 'bg-[#E3B8B8]' },
+  review: { label: 'Revisão', color: 'bg-[#BDCDCF]' },
+  approved: { label: 'Aprovado', color: 'bg-[#7ED4A6]' },
+  published: { label: 'Publicado', color: 'bg-[#7ED4A6]' },
+  cancelled: { label: 'Cancelado', color: 'bg-[#E57373]' },
 };
 
-const TYPE_ICONS: Record<string, string> = {
-  post: '📱',
-  story: '📷',
-  reel: '🎬',
-  video: '🎥',
-  carousel: '🎠',
-  live: '🔴',
-  ad: '📢',
-  blog: '📝',
-  email: '📧',
-  other: '📌',
-};
+const TYPE_ICONS = {
+  post: Smartphone,
+  story: Camera,
+  reel: Film,
+  video: Video,
+  carousel: LayoutGrid,
+  live: Radio,
+  ad: Megaphone,
+  blog: FileText,
+  email: Mail,
+  other: Pin,
+} as const;
 
 /**
  * Formata a data do evento de forma amigável
@@ -103,11 +118,11 @@ export function UpcomingEventsWidget({ maxEvents = 5 }: UpcomingEventsWidgetProp
 
   if (loading) {
     return (
-      <GlassCard>
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold text-white">Próximos Conteúdos</h2>
+      <GlassCard className="h-full flex flex-col">
+        <div className="flex items-center justify-between gap-2 mb-4">
+          <h2 className="text-base font-semibold text-white whitespace-nowrap">Próximos Conteúdos</h2>
         </div>
-        <div className="space-y-3">
+        <div className="space-y-3 flex-1">
           {[1, 2, 3].map((i) => (
             <div key={i} className="h-14 rounded-lg bg-white/[0.03] animate-pulse" />
           ))}
@@ -117,28 +132,28 @@ export function UpcomingEventsWidget({ maxEvents = 5 }: UpcomingEventsWidgetProp
   }
 
   return (
-    <GlassCard>
-      <div className="flex items-center justify-between mb-4">
-        <h2 className="text-lg font-semibold text-white">Próximos Conteúdos</h2>
+    <GlassCard className="h-full flex flex-col">
+      <div className="flex items-center justify-between gap-2 mb-4">
+        <h2 className="text-base font-semibold text-white whitespace-nowrap">Próximos Conteúdos</h2>
         <Link
           href="/calendar"
-          className="text-sm text-violet-400 hover:text-violet-300 transition-colors"
+          className="text-xs text-[#BDCDCF] hover:text-white transition-colors whitespace-nowrap flex-shrink-0"
         >
           Ver calendário
         </Link>
       </div>
 
       {events.length === 0 ? (
-        <div className="text-center py-8 text-zinc-400">
-          <span className="text-3xl">📅</span>
+        <div className="text-center py-8 text-[#8FAAAD] flex-1 flex flex-col justify-center">
+          <Calendar className="w-10 h-10 mx-auto text-[#BDCDCF]" />
           <p className="mt-2">Nenhum conteúdo agendado</p>
-          <p className="text-sm text-zinc-500">Agende conteúdos para seus clientes</p>
+          <p className="text-sm text-[#6B8A8D]">Agende conteúdos para seus clientes</p>
         </div>
       ) : (
-        <div className="space-y-2">
+        <div className="space-y-2 flex-1">
           {events.map((event) => {
             const statusConfig = STATUS_CONFIG[event.status];
-            const typeIcon = TYPE_ICONS[event.type] || TYPE_ICONS.other;
+            const TypeIcon = TYPE_ICONS[event.type as keyof typeof TYPE_ICONS] ?? Pin;
 
             return (
               <div
@@ -146,8 +161,8 @@ export function UpcomingEventsWidget({ maxEvents = 5 }: UpcomingEventsWidgetProp
                 className="flex items-center gap-3 p-3 rounded-lg bg-white/[0.02] hover:bg-white/[0.05] transition-colors"
               >
                 {/* Ícone do tipo */}
-                <div className="w-8 h-8 rounded-lg bg-white/[0.05] flex items-center justify-center flex-shrink-0">
-                  <span className="text-sm">{typeIcon}</span>
+                <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#BDCDCF]/10 to-[#8FAAAD]/10 flex items-center justify-center flex-shrink-0">
+                  <TypeIcon className="w-4 h-4 text-[#BDCDCF]" />
                 </div>
 
                 {/* Conteúdo */}
@@ -157,26 +172,50 @@ export function UpcomingEventsWidget({ maxEvents = 5 }: UpcomingEventsWidgetProp
                   </p>
                   <div className="flex items-center gap-2 mt-0.5">
                     {event.client && (
-                      <span className="text-xs text-zinc-500 truncate">
+                      <span className="text-xs text-[#6B8A8D] truncate">
                         {event.client.name}
                       </span>
                     )}
-                    {event.platform && (
-                      <span className="text-xs text-zinc-600">
-                        • {event.platform}
-                      </span>
+                    {event.platform && event.platform.length > 0 && (
+                      <div className="flex items-center gap-1.5 ml-1">
+                        {event.platform.map((platform: Platform) => {
+                          const platformConfig = PLATFORM_CONFIG[platform];
+                          if (!platformConfig) {
+                            return null;
+                          }
+                          
+                          return (
+                            <div
+                              key={platform}
+                              className="w-4 h-4 rounded-md flex items-center justify-center backdrop-blur-sm border border-white/[0.08] transition-all hover:scale-110"
+                              style={{ 
+                                backgroundColor: `${platformConfig.color}20`,
+                              }}
+                              title={platformConfig.label}
+                            >
+                              <div style={{ color: platformConfig.color }}>
+                                <Icon
+                                  name={platformConfig.icon}
+                                  size="xs"
+                                  className="opacity-95"
+                                />
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
                     )}
                   </div>
                 </div>
 
                 {/* Data e Status */}
                 <div className="flex flex-col items-end gap-1 flex-shrink-0">
-                  <span className="text-xs text-zinc-400">
+                  <span className="text-xs text-[#8FAAAD]">
                     {formatEventDate(event.scheduled_date)}
                   </span>
                   <div className="flex items-center gap-1">
                     <span className={`w-1.5 h-1.5 rounded-full ${statusConfig.color}`} />
-                    <span className="text-xs text-zinc-500">{statusConfig.label}</span>
+                    <span className="text-xs text-[#6B8A8D]">{statusConfig.label}</span>
                   </div>
                 </div>
               </div>
@@ -186,7 +225,7 @@ export function UpcomingEventsWidget({ maxEvents = 5 }: UpcomingEventsWidgetProp
       )}
 
       {/* Footer */}
-      <div className="mt-4 pt-4 border-t border-white/[0.06] flex items-center justify-between text-xs text-zinc-500">
+      <div className="mt-4 pt-4 border-t border-white/[0.06] flex items-center justify-between text-xs text-[#6B8A8D]">
         <span>Próximos 14 dias</span>
         <span>{events.length} conteúdo{events.length !== 1 ? 's' : ''} pendente{events.length !== 1 ? 's' : ''}</span>
       </div>

@@ -5,7 +5,7 @@
  */
 
 /** Tipo de conteúdo */
-export type ContentType = 'post' | 'video' | 'reels' | 'stories' | 'promo' | 'campaign' | 'event' | 'other';
+export type ContentType = 'post' | 'video' | 'reels' | 'stories' | 'promo' | 'campaign' | 'event' | 'other' | 'meeting';
 
 /** Status do conteúdo */
 export type ContentStatus = 'planned' | 'creating' | 'review' | 'approved' | 'published' | 'cancelled';
@@ -39,7 +39,13 @@ export interface CalendarEvent {
   client?: {
     id: string;
     name: string;
+    contact_name?: string;
   };
+  /** Campos extras para reuniões */
+  is_meeting?: boolean;
+  meeting_type?: 'online' | 'presencial';
+  meeting_link?: string | null;
+  location?: string | null;
 }
 
 /**
@@ -216,6 +222,15 @@ export const CONTENT_TYPE_CONFIG: Record<ContentType, {
     textColor: 'text-zinc-200',
     borderColor: 'border-zinc-500/60',
     className: 'bg-zinc-500/25 text-zinc-200 border-zinc-500/60',
+  },
+  meeting: {
+    label: 'Reunião',
+    icon: 'calendar',
+    iconColor: 'text-cyan-500',
+    bgColor: 'bg-cyan-500/25',
+    textColor: 'text-cyan-200',
+    borderColor: 'border-cyan-500/60',
+    className: 'bg-cyan-500/25 text-cyan-200 border-cyan-500/60',
   },
 };
 

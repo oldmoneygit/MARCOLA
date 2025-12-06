@@ -74,7 +74,7 @@ export function CalendarPageContent() {
   const monthStats = useMemo(() => {
     const byType: Record<ContentType, number> = {
       post: 0, video: 0, reels: 0, stories: 0,
-      promo: 0, campaign: 0, event: 0, other: 0,
+      promo: 0, campaign: 0, event: 0, other: 0, meeting: 0,
     };
 
     const byStatus: Record<ContentStatus, number> = {

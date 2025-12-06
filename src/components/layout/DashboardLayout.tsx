@@ -17,6 +17,7 @@ import { cn } from '@/lib/utils';
 
 import { Header } from './Header';
 import { Sidebar } from './Sidebar';
+import { MobileSidebar } from './MobileSidebar';
 
 interface DashboardLayoutProps {
   /** Título da página atual */
@@ -32,31 +33,21 @@ interface DashboardLayoutProps {
 }
 
 /**
- * Hook para gerenciar responsividade da sidebar
+ * Hook para gerenciar responsividade da sidebar mobile
  */
-function useSidebarState() {
-  const [isCollapsed, setIsCollapsed] = useState(false);
+function useMobileSidebar() {
   const [isMobileOpen, setIsMobileOpen] = useState(false);
 
   // Fecha sidebar mobile ao redimensionar para desktop
   useEffect(() => {
     const handleResize = () => {
-      if (window.innerWidth >= 1024) {
+      if (window.innerWidth >= 768) {
         setIsMobileOpen(false);
       }
     };
 
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
-  }, []);
-
-  // Fecha sidebar mobile ao navegar
-  useEffect(() => {
-    setIsMobileOpen(false);
-  }, []);
-
-  const toggleCollapsed = useCallback(() => {
-    setIsCollapsed((prev) => !prev);
   }, []);
 
   const toggleMobile = useCallback(() => {
@@ -68,9 +59,7 @@ function useSidebarState() {
   }, []);
 
   return {
-    isCollapsed,
     isMobileOpen,
-    toggleCollapsed,
     toggleMobile,
     closeMobile,
   };
@@ -78,6 +67,7 @@ function useSidebarState() {
 
 /**
  * Layout principal do dashboard que combina Sidebar e Header
+ * A sidebar desktop usa hover para expandir/colapsar automaticamente
  */
 function DashboardLayout({
   title,
@@ -87,47 +77,30 @@ function DashboardLayout({
   className,
 }: DashboardLayoutProps) {
   const {
-    isCollapsed,
     isMobileOpen,
-    toggleCollapsed,
     toggleMobile,
     closeMobile,
-  } = useSidebarState();
+  } = useMobileSidebar();
 
   return (
     <div className="min-h-screen bg-[#0a0a0f]">
       {/* Mobile overlay */}
       {isMobileOpen && (
         <div
-          className="fixed inset-0 z-30 bg-black/60 backdrop-blur-sm lg:hidden"
+          className="fixed inset-0 z-30 bg-black/60 backdrop-blur-sm md:hidden"
           onClick={closeMobile}
           aria-hidden="true"
         />
       )}
 
-      {/* Sidebar - Desktop */}
-      <div className="hidden lg:block">
-        <Sidebar isCollapsed={isCollapsed} onToggle={toggleCollapsed} />
-      </div>
+      {/* Sidebar - Desktop (hover to expand) */}
+      <Sidebar />
 
       {/* Sidebar - Mobile */}
-      <div
-        className={cn(
-          'fixed inset-y-0 left-0 z-40 lg:hidden',
-          'transform transition-transform duration-300 ease-in-out',
-          isMobileOpen ? 'translate-x-0' : '-translate-x-full'
-        )}
-      >
-        <Sidebar isCollapsed={false} />
-      </div>
+      <MobileSidebar isOpen={isMobileOpen} onClose={closeMobile} />
 
-      {/* Main content area */}
-      <div
-        className={cn(
-          'transition-all duration-300 ease-in-out',
-          isCollapsed ? 'lg:pl-20' : 'lg:pl-64'
-        )}
-      >
+      {/* Main content area - ajustado para sidebar colapsada de 70px */}
+      <div className="md:pl-[70px] transition-all duration-300 ease-in-out">
         {/* Header */}
         <Header
           title={title}
@@ -145,5 +118,5 @@ function DashboardLayout({
   );
 }
 
-export { DashboardLayout, useSidebarState };
+export { DashboardLayout, useMobileSidebar };
 export type { DashboardLayoutProps };

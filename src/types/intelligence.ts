@@ -308,6 +308,7 @@ export const CONTENT_TYPE_EMOJI: Record<ContentType, string> = {
   campaign: '🚀',
   event: '📅',
   other: '📌',
+  meeting: '🤝',
 };
 
 /**

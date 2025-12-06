@@ -7,11 +7,13 @@
  * import { DashboardLayout, Sidebar, Header } from '@/components/layout';
  */
 
-export { DashboardLayout, useSidebarState } from './DashboardLayout';
+export { DashboardLayout, useMobileSidebar } from './DashboardLayout';
 export { Header, UserMenu } from './Header';
 export { Sidebar } from './Sidebar';
+export { MobileSidebar } from './MobileSidebar';
 
 // Types
 export type { DashboardLayoutProps } from './DashboardLayout';
 export type { HeaderProps, UserMenuProps } from './Header';
 export type { SidebarProps } from './Sidebar';
+export type { MobileSidebarProps } from './MobileSidebar';

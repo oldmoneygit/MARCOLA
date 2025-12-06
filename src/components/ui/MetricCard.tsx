@@ -27,51 +27,59 @@ import { GlassCard } from './GlassCard';
 
 type TrendDirection = 'up' | 'down' | 'neutral';
 
-/** Cores de destaque disponíveis para MetricCard */
-type AccentColor = 'violet' | 'emerald' | 'amber' | 'rose' | 'blue' | 'cyan';
+/** Cores de destaque disponíveis para MetricCard - Emerald Teal Theme */
+type AccentColor = 'teal' | 'emerald' | 'amber' | 'rose' | 'blue' | 'cyan' | 'violet';
 
-/** Configuração de cores de destaque */
+/** Configuração de cores de destaque - Emerald Teal Theme */
 const ACCENT_COLORS: Record<AccentColor, {
   border: string;
   iconBg: string;
   iconColor: string;
   glow: string;
 }> = {
-  violet: {
-    border: 'border-l-violet-500',
-    iconBg: 'bg-violet-500/10',
-    iconColor: 'text-violet-400',
-    glow: 'shadow-violet-500/10',
+  // Cor principal do tema
+  teal: {
+    border: 'border-l-[#BDCDCF]',
+    iconBg: 'bg-[#BDCDCF]/10',
+    iconColor: 'text-[#BDCDCF]',
+    glow: 'shadow-[#BDCDCF]/10',
   },
   emerald: {
-    border: 'border-l-emerald-500',
-    iconBg: 'bg-emerald-500/10',
-    iconColor: 'text-emerald-400',
-    glow: 'shadow-emerald-500/10',
+    border: 'border-l-[#7ED4A6]',
+    iconBg: 'bg-[#7ED4A6]/10',
+    iconColor: 'text-[#7ED4A6]',
+    glow: 'shadow-[#7ED4A6]/10',
   },
   amber: {
-    border: 'border-l-amber-500',
-    iconBg: 'bg-amber-500/10',
-    iconColor: 'text-amber-400',
-    glow: 'shadow-amber-500/10',
+    border: 'border-l-[#E3B8B8]',
+    iconBg: 'bg-[#E3B8B8]/10',
+    iconColor: 'text-[#E3B8B8]',
+    glow: 'shadow-[#E3B8B8]/10',
   },
   rose: {
-    border: 'border-l-rose-500',
-    iconBg: 'bg-rose-500/10',
-    iconColor: 'text-rose-400',
-    glow: 'shadow-rose-500/10',
+    border: 'border-l-[#E3B8B8]',
+    iconBg: 'bg-[#E3B8B8]/10',
+    iconColor: 'text-[#E3B8B8]',
+    glow: 'shadow-[#E3B8B8]/10',
   },
   blue: {
-    border: 'border-l-blue-500',
-    iconBg: 'bg-blue-500/10',
-    iconColor: 'text-blue-400',
-    glow: 'shadow-blue-500/10',
+    border: 'border-l-[#8FAAAD]',
+    iconBg: 'bg-[#8FAAAD]/10',
+    iconColor: 'text-[#8FAAAD]',
+    glow: 'shadow-[#8FAAAD]/10',
   },
   cyan: {
-    border: 'border-l-cyan-500',
-    iconBg: 'bg-cyan-500/10',
-    iconColor: 'text-cyan-400',
-    glow: 'shadow-cyan-500/10',
+    border: 'border-l-[#BDCDCF]',
+    iconBg: 'bg-[#BDCDCF]/10',
+    iconColor: 'text-[#BDCDCF]',
+    glow: 'shadow-[#BDCDCF]/10',
+  },
+  // Legacy - mapeia para teal
+  violet: {
+    border: 'border-l-[#BDCDCF]',
+    iconBg: 'bg-[#BDCDCF]/10',
+    iconColor: 'text-[#BDCDCF]',
+    glow: 'shadow-[#BDCDCF]/10',
   },
 };
 
@@ -130,10 +138,11 @@ function MetricCard({
   const isPositiveTrend =
     trendDirection === 'up' ? positiveIsGood : !positiveIsGood;
 
+  // Cores do tema Emerald Teal
   const trendColors = {
-    positive: 'text-emerald-400',
-    negative: 'text-red-400',
-    neutral: 'text-zinc-400',
+    positive: 'text-[#7ED4A6]',
+    negative: 'text-[#E57373]',
+    neutral: 'text-[#6B8A8D]',
   };
 
   const getTrendColor = () => {

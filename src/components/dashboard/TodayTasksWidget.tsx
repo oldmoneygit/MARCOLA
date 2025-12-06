@@ -68,11 +68,11 @@ export function TodayTasksWidget() {
 
   if (loading) {
     return (
-      <GlassCard>
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold text-white">Tarefas de Hoje</h2>
+      <GlassCard className="h-full flex flex-col">
+        <div className="flex items-center justify-between gap-2 mb-4">
+          <h2 className="text-base font-semibold text-white whitespace-nowrap">Tarefas de Hoje</h2>
         </div>
-        <div className="space-y-3">
+        <div className="space-y-3 flex-1">
           {[1, 2, 3].map((i) => (
             <div key={i} className="h-16 rounded-lg bg-white/[0.03] animate-pulse" />
           ))}
@@ -86,32 +86,32 @@ export function TodayTasksWidget() {
   const allTasks = [...(data?.overdue || []), ...(data?.today || [])];
 
   return (
-    <GlassCard>
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-3">
-          <h2 className="text-lg font-semibold text-white">Tarefas de Hoje</h2>
+    <GlassCard className="h-full flex flex-col">
+      <div className="flex items-center justify-between gap-2 mb-4">
+        <div className="flex items-center gap-2 min-w-0">
+          <h2 className="text-base font-semibold text-white whitespace-nowrap">Tarefas de Hoje</h2>
           {overdueCount > 0 && (
-            <span className="px-2 py-0.5 text-xs font-medium rounded-full bg-red-500/10 text-red-400">
-              {overdueCount} atrasada{overdueCount > 1 ? 's' : ''}
+            <span className="px-2 py-0.5 text-xs font-medium rounded-full bg-[#E57373]/10 text-[#E57373] whitespace-nowrap flex-shrink-0">
+              {overdueCount}
             </span>
           )}
         </div>
         <Link
           href="/tasks"
-          className="text-sm text-violet-400 hover:text-violet-300 transition-colors"
+          className="text-xs text-[#BDCDCF] hover:text-white transition-colors whitespace-nowrap flex-shrink-0"
         >
           Ver todas
         </Link>
       </div>
 
       {allTasks.length === 0 ? (
-        <div className="text-center py-8 text-zinc-400">
-          <CheckCircle2 className="w-10 h-10 mx-auto text-emerald-400" />
+        <div className="text-center py-8 text-[#6B8A8D] flex-1 flex flex-col justify-center">
+          <CheckCircle2 className="w-10 h-10 mx-auto text-[#7ED4A6]" />
           <p className="mt-2">Nenhuma tarefa para hoje!</p>
-          <p className="text-sm text-zinc-500">Aproveite o dia</p>
+          <p className="text-sm text-[#6B8A8D]">Aproveite o dia</p>
         </div>
       ) : (
-        <div className="space-y-2">
+        <div className="space-y-2 flex-1">
           {allTasks.slice(0, 5).map((task) => {
             const isOverdue = data?.overdue?.some(t => t.id === task.id);
 
@@ -120,7 +120,7 @@ export function TodayTasksWidget() {
                 key={task.id}
                 className={`flex items-center gap-3 p-3 rounded-lg transition-colors ${
                   isOverdue
-                    ? 'bg-red-500/5 border border-red-500/20'
+                    ? 'bg-[#E57373]/5 border border-[#E57373]/20'
                     : 'bg-white/[0.02] hover:bg-white/[0.05]'
                 }`}
               >
@@ -130,8 +130,8 @@ export function TodayTasksWidget() {
                   onClick={() => handleToggleComplete(task.id, task.status)}
                   className={`w-5 h-5 rounded border-2 flex items-center justify-center flex-shrink-0 transition-colors ${
                     task.status === 'done'
-                      ? 'bg-emerald-500 border-emerald-500 text-white'
-                      : 'border-zinc-600 hover:border-zinc-500'
+                      ? 'bg-[#7ED4A6] border-[#7ED4A6] text-white'
+                      : 'border-[#6B8A8D] hover:border-[#8FAAAD]'
                   }`}
                 >
                   {task.status === 'done' && (
@@ -155,7 +155,7 @@ export function TodayTasksWidget() {
                       </span>
                     )}
                     {isOverdue && (
-                      <span className="text-xs text-red-400">
+                      <span className="text-xs text-[#E57373]">
                         Atrasada
                       </span>
                     )}

@@ -574,34 +574,34 @@ function BriefingTemplateCard({
         <Button
           variant="ghost"
           size="sm"
-          onClick={() => onToggleActive(template.id, !template.is_active)}
+              onClick={() => onToggleActive(template.id, !template.is_active)}
           className="text-xs"
-        >
-          {template.is_active ? 'Desativar' : 'Ativar'}
+            >
+              {template.is_active ? 'Desativar' : 'Ativar'}
         </Button>
-        <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2">
           <Button
             variant="secondary"
             size="sm"
-            onClick={() => onEdit(template)}
+                onClick={() => onEdit(template)}
             className="text-xs"
-          >
+              >
             <Icon name="filetext" size="xs" className="mr-1" />
-            Editar
+                Editar
           </Button>
           {!isSystemTemplate && (
             <Button
               variant="danger"
               size="sm"
-              onClick={() => onDelete(template.id)}
+                onClick={() => onDelete(template.id)}
               className="text-xs"
-            >
+              >
               <Icon name="x-circle" size="xs" className="mr-1" />
-              Excluir
+                Excluir
             </Button>
-          )}
-        </div>
+        )}
       </div>
+    </div>
     </GlassCard>
   );
 }

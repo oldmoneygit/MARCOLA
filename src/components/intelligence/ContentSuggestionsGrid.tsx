@@ -30,6 +30,7 @@ const CONTENT_TYPE_ICONS: Record<ContentType, string> = {
   campaign: 'target',
   event: 'calendar',
   other: 'file',
+  meeting: 'users',
 };
 
 /**

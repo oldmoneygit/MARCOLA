@@ -62,34 +62,34 @@ const MetricIcons = {
 };
 
 /**
- * Configuração de severidade para sugestões
+ * Configuração de severidade para sugestões - Emerald Teal Theme
  */
 const SEVERITY_CONFIG = {
   urgent: {
-    bgColor: 'bg-red-500/5',
-    borderColor: 'border-red-500',
-    iconBgColor: 'bg-red-500/10',
-    iconColor: 'text-red-400',
-    labelBgColor: 'bg-red-500/10',
-    labelColor: 'text-red-400',
+    bgColor: 'bg-[#E57373]/5',
+    borderColor: 'border-[#E57373]',
+    iconBgColor: 'bg-[#E57373]/10',
+    iconColor: 'text-[#E57373]',
+    labelBgColor: 'bg-[#E57373]/10',
+    labelColor: 'text-[#E57373]',
     label: 'URGENTE',
   },
   warning: {
-    bgColor: 'bg-amber-500/5',
-    borderColor: 'border-amber-500',
-    iconBgColor: 'bg-amber-500/10',
-    iconColor: 'text-amber-400',
-    labelBgColor: 'bg-amber-500/10',
-    labelColor: 'text-amber-400',
+    bgColor: 'bg-[#E3B8B8]/5',
+    borderColor: 'border-[#E3B8B8]',
+    iconBgColor: 'bg-[#E3B8B8]/10',
+    iconColor: 'text-[#E3B8B8]',
+    labelBgColor: 'bg-[#E3B8B8]/10',
+    labelColor: 'text-[#E3B8B8]',
     label: 'ATENÇÃO',
   },
   info: {
-    bgColor: 'bg-blue-500/5',
-    borderColor: 'border-blue-500',
-    iconBgColor: 'bg-blue-500/10',
-    iconColor: 'text-blue-400',
-    labelBgColor: 'bg-blue-500/10',
-    labelColor: 'text-blue-400',
+    bgColor: 'bg-[#BDCDCF]/5',
+    borderColor: 'border-[#BDCDCF]',
+    iconBgColor: 'bg-[#BDCDCF]/10',
+    iconColor: 'text-[#BDCDCF]',
+    labelBgColor: 'bg-[#BDCDCF]/10',
+    labelColor: 'text-[#BDCDCF]',
     label: 'SUGESTÃO',
   },
 };
@@ -196,7 +196,7 @@ export function DashboardPageContent() {
           icon={MetricIcons.clients}
           change={data?.clientsChange || 0}
           trendLabel="vs. mês anterior"
-          accent="blue"
+          accent="teal"
         />
 
         <MetricCard
@@ -206,7 +206,7 @@ export function DashboardPageContent() {
           change={data?.cpaChange || 0}
           positiveIsGood={false}
           trendLabel="vs. mês anterior"
-          accent="violet"
+          accent="blue"
         />
 
         <MetricCard
@@ -240,7 +240,7 @@ export function DashboardPageContent() {
               </h2>
               <Link
                 href="/analysis"
-                className="text-sm text-violet-400 hover:text-violet-300 transition-colors"
+                className="text-sm text-[#BDCDCF] hover:text-white transition-colors"
               >
                 Ver todas
               </Link>
@@ -311,7 +311,7 @@ export function DashboardPageContent() {
                   >
                     <div
                       className={`w-2 h-2 rounded-full ${
-                        client.severity === 'danger' ? 'bg-red-500' : 'bg-amber-500'
+                        client.severity === 'danger' ? 'bg-[#E57373]' : 'bg-[#E3B8B8]'
                       }`}
                     />
                     <div className="flex-1 min-w-0">
@@ -330,7 +330,7 @@ export function DashboardPageContent() {
 
             <Link
               href="/clients"
-              className="block w-full mt-4 py-2 text-sm text-center text-violet-400 hover:text-violet-300 transition-colors"
+              className="block w-full mt-4 py-2 text-sm text-center text-[#BDCDCF] hover:text-white transition-colors"
             >
               Ver todos os clientes
             </Link>

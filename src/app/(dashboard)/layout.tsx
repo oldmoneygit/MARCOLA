@@ -7,6 +7,8 @@
  * e não adiciona segmentos à URL.
  */
 
+import { AssistantChat } from '@/components/assistant';
+
 // Force dynamic rendering to prevent static generation issues with event handlers
 export const dynamic = 'force-dynamic';
 
@@ -15,5 +17,11 @@ interface DashboardGroupLayoutProps {
 }
 
 export default function DashboardGroupLayout({ children }: DashboardGroupLayoutProps) {
-  return <>{children}</>;
+  return (
+    <>
+      {children}
+      {/* Assistente flutuante disponível em todas as páginas do dashboard */}
+      <AssistantChat />
+    </>
+  );
 }
