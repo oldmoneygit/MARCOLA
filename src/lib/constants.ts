@@ -32,6 +32,7 @@ export const ROUTES = {
   FINANCIAL: '/financial',
   TEAM: '/team',
   WHATSAPP: '/whatsapp',
+  LEADS: '/leads',
   PROFILE: '/profile',
   SETTINGS: '/settings',
   INVITE: (token: string) => `/invite/${token}`,
@@ -43,6 +44,7 @@ export const ROUTES = {
 export const NAV_ITEMS = [
   { id: 'dashboard', label: 'Dashboard', icon: 'LayoutDashboard', href: ROUTES.DASHBOARD },
   { id: 'clients', label: 'Clientes', icon: 'Users', href: ROUTES.CLIENTS },
+  { id: 'leads', label: 'Lead Sniper', icon: 'Target', href: ROUTES.LEADS },
   { id: 'tasks', label: 'Tarefas', icon: 'CheckSquare', href: ROUTES.TASKS },
   { id: 'calendar', label: 'Calendário', icon: 'Calendar', href: ROUTES.CALENDAR },
   { id: 'reports', label: 'Relatórios', icon: 'BarChart3', href: ROUTES.REPORTS },

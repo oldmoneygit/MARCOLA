@@ -158,6 +158,11 @@ export interface ToolParameterProperty {
   type: string;
   description?: string;
   enum?: string[];
+  items?: {
+    type: string;
+    properties?: Record<string, ToolParameterProperty>;
+    required?: string[];
+  };
 }
 
 export interface ToolCall {

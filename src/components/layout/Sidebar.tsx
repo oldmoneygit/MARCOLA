@@ -26,6 +26,7 @@ import {
   IconWallet,
   IconSettings,
   IconArrowLeft,
+  IconTarget,
 } from '@tabler/icons-react';
 
 import { useCurrentUser } from '@/hooks/useCurrentUser';
@@ -43,6 +44,7 @@ interface SidebarProps {
 const iconMap: Record<string, React.ReactNode> = {
   dashboard: <IconLayoutDashboard className="h-5 w-5 shrink-0" />,
   clients: <IconUsers className="h-5 w-5 shrink-0" />,
+  leads: <IconTarget className="h-5 w-5 shrink-0" />,
   tasks: <IconChecklist className="h-5 w-5 shrink-0" />,
   calendar: <IconCalendar className="h-5 w-5 shrink-0" />,
   reports: <IconChartBar className="h-5 w-5 shrink-0" />,

@@ -7,6 +7,8 @@
 import { createClient } from '@/lib/supabase/server';
 import { getZAPIService } from '@/lib/whatsapp';
 import type { ToolCall, ToolResult, ConfirmationData } from './types';
+import { executarPesquisaWebhook, mapDbLeadToTs, calculateLeadStats } from '@/lib/lead-sniper';
+import type { TipoNegocio } from '@/types/lead-sniper';
 
 // Importar executors avançados
 import {
@@ -1641,6 +1643,35 @@ async function executeAdvancedTool(
         });
         break;
 
+      // === LEAD SNIPER ===
+      case 'executar_pesquisa_mercado':
+        result = await executeLeadSniperPesquisa(userId, parameters);
+        break;
+
+      case 'listar_leads':
+        result = await executeLeadSniperListarLeads(userId, parameters);
+        break;
+
+      case 'buscar_lead':
+        result = await executeLeadSniperBuscarLead(userId, parameters);
+        break;
+
+      case 'atualizar_status_lead':
+        result = await executeLeadSniperAtualizarStatus(userId, parameters);
+        break;
+
+      case 'registrar_interacao_lead':
+        result = await executeLeadSniperRegistrarInteracao(userId, parameters);
+        break;
+
+      case 'estatisticas_leads':
+        result = await executeLeadSniperEstatisticas(userId);
+        break;
+
+      case 'listar_pesquisas_mercado':
+        result = await executeLeadSniperListarPesquisas(userId, parameters);
+        break;
+
       default:
         return {
           success: false,
@@ -1751,6 +1782,23 @@ async function prepareAdvancedConfirmation(
         });
         break;
 
+      // === LEAD SNIPER ===
+      case 'executar_pesquisa_mercado':
+      case 'atualizar_status_lead':
+      case 'registrar_interacao_lead':
+        // Lead Sniper tools que requerem confirmação
+        return {
+          success: true,
+          data: {
+            requiresConfirmation: true,
+            confirmation: {
+              type: 'generic',
+              message: `Confirmar execução de ${name}?`,
+              data: parameters
+            }
+          }
+        };
+
       default:
         return {
           success: false,
@@ -1772,4 +1820,298 @@ async function prepareAdvancedConfirmation(
       error: error instanceof Error ? error.message : 'Erro desconhecido'
     };
   }
+}
+
+// ==================== LEAD SNIPER EXECUTORS ====================
+
+/**
+ * Executa pesquisa de mercado via Lead Sniper
+ */
+async function executeLeadSniperPesquisa(
+  _userId: string,
+  params: Record<string, unknown>
+): Promise<Record<string, unknown>> {
+  try {
+    // Preparar cidades com raio padrão
+    const cidadesRaw = params.cidades as Array<{ nome: string; lat: number; lng: number; raio?: number }>;
+    const cidades = cidadesRaw.map((c) => ({
+      nome: c.nome,
+      lat: c.lat,
+      lng: c.lng,
+      raio: c.raio ?? 5000,
+    }));
+
+    // Chamar o webhook de pesquisa
+    const response = await executarPesquisaWebhook({
+      tipo: params.tipo as TipoNegocio,
+      cidades,
+      scoreMinimo: params.scoreMinimo as number | undefined,
+      maxPorCidade: params.maxPorCidade as number | undefined,
+      clienteId: params.clienteId as string | undefined,
+    });
+
+    return {
+      success: true,
+      leadsEncontrados: response.estatisticas.total,
+      estatisticas: response.estatisticas,
+      message: `Pesquisa concluída: ${response.estatisticas.total} leads encontrados`
+    };
+  } catch (error) {
+    console.error('[executeLeadSniperPesquisa] Erro:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Erro ao executar pesquisa'
+    };
+  }
+}
+
+/**
+ * Lista leads prospectados
+ */
+async function executeLeadSniperListarLeads(
+  userId: string,
+  params: Record<string, unknown>
+): Promise<Record<string, unknown>> {
+  const supabase = await createClient();
+
+  let query = supabase
+    .from('leads_prospectados')
+    .select('*')
+    .eq('user_id', userId)
+    .order('score', { ascending: false });
+
+  // Aplicar filtros
+  if (params.classificacao) {
+    query = query.eq('classificacao', params.classificacao);
+  }
+  if (params.status) {
+    query = query.eq('status', params.status);
+  }
+  if (params.cidade) {
+    query = query.ilike('cidade', `%${params.cidade}%`);
+  }
+  if (params.temWhatsapp !== undefined) {
+    query = query.eq('tem_whatsapp', params.temWhatsapp);
+  }
+  if (params.temSite !== undefined) {
+    query = query.eq('tem_site', params.temSite);
+  }
+  if (params.tipoNegocio) {
+    query = query.eq('tipo_negocio', params.tipoNegocio);
+  }
+  if (params.pesquisaId) {
+    query = query.eq('pesquisa_id', params.pesquisaId);
+  }
+
+  const limit = (params.limit as number) || 20;
+  query = query.limit(limit);
+
+  const { data: leads, error } = await query;
+
+  if (error) {
+    return { success: false, error: error.message };
+  }
+
+  const mappedLeads = (leads || []).map(mapDbLeadToTs);
+
+  return {
+    success: true,
+    leads: mappedLeads,
+    total: mappedLeads.length,
+    message: `${mappedLeads.length} leads encontrados`
+  };
+}
+
+/**
+ * Busca um lead específico
+ */
+async function executeLeadSniperBuscarLead(
+  userId: string,
+  params: Record<string, unknown>
+): Promise<Record<string, unknown>> {
+  const supabase = await createClient();
+
+  let query = supabase
+    .from('leads_prospectados')
+    .select('*')
+    .eq('user_id', userId);
+
+  if (params.leadId) {
+    query = query.eq('id', params.leadId);
+  } else if (params.nome) {
+    query = query.ilike('nome', `%${params.nome}%`);
+  } else {
+    return { success: false, error: 'Informe o ID ou nome do lead' };
+  }
+
+  const { data: leads, error } = await query.limit(1);
+
+  if (error) {
+    return { success: false, error: error.message };
+  }
+
+  if (!leads || leads.length === 0) {
+    return { success: false, error: 'Lead não encontrado' };
+  }
+
+  const lead = mapDbLeadToTs(leads[0]);
+
+  return {
+    success: true,
+    lead,
+    message: `Lead encontrado: ${lead.nome}`
+  };
+}
+
+/**
+ * Atualiza status de um lead
+ */
+async function executeLeadSniperAtualizarStatus(
+  userId: string,
+  params: Record<string, unknown>
+): Promise<Record<string, unknown>> {
+  const supabase = await createClient();
+
+  const { leadId, status, notas } = params;
+
+  if (!leadId || !status) {
+    return { success: false, error: 'ID do lead e status são obrigatórios' };
+  }
+
+  const updateData: Record<string, unknown> = { status };
+  if (notas) {
+    updateData.notas = notas;
+  }
+  if (status === 'CONTATADO') {
+    updateData.data_contato = new Date().toISOString();
+  }
+  if (status === 'RESPONDEU') {
+    updateData.data_resposta = new Date().toISOString();
+  }
+
+  const { data: lead, error } = await supabase
+    .from('leads_prospectados')
+    .update(updateData)
+    .eq('id', leadId)
+    .eq('user_id', userId)
+    .select()
+    .single();
+
+  if (error) {
+    return { success: false, error: error.message };
+  }
+
+  return {
+    success: true,
+    lead: mapDbLeadToTs(lead),
+    message: `Status do lead atualizado para ${status}`
+  };
+}
+
+/**
+ * Registra interação com lead
+ */
+async function executeLeadSniperRegistrarInteracao(
+  userId: string,
+  params: Record<string, unknown>
+): Promise<Record<string, unknown>> {
+  const supabase = await createClient();
+
+  const { leadId, tipo, direcao, conteudo, resultado } = params;
+
+  if (!leadId || !tipo || !conteudo) {
+    return { success: false, error: 'ID do lead, tipo e conteúdo são obrigatórios' };
+  }
+
+  const { data: interacao, error } = await supabase
+    .from('lead_interacoes')
+    .insert({
+      lead_id: leadId,
+      user_id: userId,
+      tipo,
+      direcao: direcao || 'ENVIADO',
+      conteudo,
+      resultado: resultado || null
+    })
+    .select()
+    .single();
+
+  if (error) {
+    return { success: false, error: error.message };
+  }
+
+  return {
+    success: true,
+    interacao,
+    message: `Interação ${tipo} registrada com sucesso`
+  };
+}
+
+/**
+ * Obtém estatísticas dos leads
+ */
+async function executeLeadSniperEstatisticas(
+  userId: string
+): Promise<Record<string, unknown>> {
+  const supabase = await createClient();
+
+  const { data: leads, error } = await supabase
+    .from('leads_prospectados')
+    .select('classificacao, status, cidade, tem_whatsapp, tem_site, score')
+    .eq('user_id', userId);
+
+  if (error) {
+    return { success: false, error: error.message };
+  }
+
+  const stats = calculateLeadStats(leads || []);
+
+  // Buscar contagem de pesquisas
+  const { count: totalPesquisas } = await supabase
+    .from('pesquisas_mercado')
+    .select('*', { count: 'exact', head: true })
+    .eq('user_id', userId);
+
+  return {
+    success: true,
+    ...stats,
+    totalPesquisas: totalPesquisas || 0,
+    message: `${stats.total} leads prospectados no total`
+  };
+}
+
+/**
+ * Lista pesquisas de mercado realizadas
+ */
+async function executeLeadSniperListarPesquisas(
+  userId: string,
+  params: Record<string, unknown>
+): Promise<Record<string, unknown>> {
+  const supabase = await createClient();
+
+  let query = supabase
+    .from('pesquisas_mercado')
+    .select('*')
+    .eq('user_id', userId)
+    .order('created_at', { ascending: false });
+
+  if (params.status) {
+    query = query.eq('status', params.status);
+  }
+
+  const limit = (params.limit as number) || 10;
+  query = query.limit(limit);
+
+  const { data: pesquisas, error } = await query;
+
+  if (error) {
+    return { success: false, error: error.message };
+  }
+
+  return {
+    success: true,
+    pesquisas: pesquisas || [],
+    total: pesquisas?.length || 0,
+    message: `${pesquisas?.length || 0} pesquisas encontradas`
+  };
 }

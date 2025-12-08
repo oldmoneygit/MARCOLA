@@ -29,6 +29,7 @@ import {
 import { GlassCard } from '@/components/ui/GlassCard';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { AudioRecorder } from '@/components/whatsapp';
+import { WhatsAppStatusCard } from '@/components/whatsapp-evolution/WhatsAppStatusCard';
 import { useAuth } from '@/hooks/useAuth';
 import type { TextTemplate, AudioTemplate, TemplateCategory } from '@/types/whatsapp';
 
@@ -273,6 +274,9 @@ export default function WhatsAppPage() {
       headerActions={headerActions}
     >
       <div className="space-y-6">
+
+      {/* Card de Conexão WhatsApp Evolution */}
+      <WhatsAppStatusCard />
 
       {/* Tabs */}
       <div className="flex gap-2 p-1 bg-white/5 rounded-xl w-fit">

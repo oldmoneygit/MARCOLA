@@ -162,12 +162,8 @@ export function SettingsPageContent() {
 
   return (
     <div className="space-y-6 max-w-2xl mx-auto">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-white">Configurações</h1>
-          <p className="text-zinc-400 mt-1">Personalize sua experiência no MARCOLA</p>
-        </div>
+      {/* Save Button */}
+      <div className="flex justify-end">
         <button
           type="button"
           onClick={handleSave}
