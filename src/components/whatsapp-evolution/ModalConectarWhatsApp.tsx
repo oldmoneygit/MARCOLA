@@ -33,8 +33,8 @@ interface ModalConectarWhatsAppProps {
 type ConnectionStatus = 'loading' | 'qrcode' | 'connected' | 'error' | 'timeout';
 
 // Configurações de polling
-const POLLING_INTERVAL = 2000; // 2 segundos
-const MAX_POLLING_ATTEMPTS = 30; // 60 segundos total
+const POLLING_INTERVAL = 3000; // 3 segundos (menos agressivo)
+const MAX_POLLING_ATTEMPTS = 40; // 120 segundos total (2 minutos)
 
 export function ModalConectarWhatsApp({
   isOpen,
@@ -53,6 +53,11 @@ export function ModalConectarWhatsApp({
   const isTerminalStateRef = useRef(false);
   const attemptCountRef = useRef(0);
   const currentInstanceRef = useRef<string | null>(null);
+  const hasInitializedRef = useRef(false);
+  const onConnectedRef = useRef(onConnected);
+
+  // Manter ref atualizado
+  onConnectedRef.current = onConnected;
 
   /**
    * Limpa o polling e reseta os refs
@@ -82,8 +87,14 @@ export function ModalConectarWhatsApp({
     try {
       const response = await fetch('/api/whatsapp-evolution/status');
       const data = await response.json();
+      console.log('[ModalConectarWhatsApp] Polling status:', {
+        connected: data.connected,
+        state: data.state,
+        attempt: attemptCountRef.current,
+      });
       return data.connected === true;
-    } catch {
+    } catch (err) {
+      console.error('[ModalConectarWhatsApp] Erro ao verificar status:', err);
       return false;
     }
   }, []);
@@ -122,14 +133,15 @@ export function ModalConectarWhatsApp({
           isTerminalStateRef.current = true;
           cleanupPolling();
           setStatus('connected');
-          onConnected(nome);
+          // Usar ref para evitar re-renders
+          onConnectedRef.current(nome);
         }
       } catch (err) {
         console.error('[ModalConectarWhatsApp] Erro no polling:', err);
         // Não falhar no polling, continuar tentando
       }
     }, POLLING_INTERVAL);
-  }, [cleanupPolling, onConnected, verificarStatusAPI]);
+  }, [cleanupPolling, verificarStatusAPI]);
 
   /**
    * Inicia processo de conexão via API route (salva no banco)
@@ -139,32 +151,59 @@ export function ModalConectarWhatsApp({
       resetState();
       setStatus('loading');
 
+      console.log('[ModalConectarWhatsApp] Iniciando conexão...');
+
       // Criar instância via API route (que salva no banco de dados)
       const response = await fetch('/api/whatsapp-evolution/instancia', {
         method: 'POST',
       });
 
+      console.log('[ModalConectarWhatsApp] Resposta status:', response.status);
+
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
+        console.error('[ModalConectarWhatsApp] Erro da API:', errorData);
         throw new Error(errorData.error || 'Falha ao criar instância');
       }
 
       const result = await response.json();
-
-      if (!result.success && !result.qrcode) {
-        throw new Error('Falha ao criar instância');
-      }
+      console.log('[ModalConectarWhatsApp] Resultado:', {
+        success: result.success,
+        connected: result.connected,
+        hasQrcode: !!result.qrcode,
+        instanceName: result.instanceName,
+      });
 
       const nome = result.instanceName || result.instancia?.instanceName;
       setInstanceName(nome);
 
+      // CASO 1: Já está conectado - mostrar sucesso direto
+      if (result.connected === true) {
+        console.log('[ModalConectarWhatsApp] WhatsApp já conectado!');
+        isTerminalStateRef.current = true;
+        setStatus('connected');
+        if (nome) {
+          onConnectedRef.current(nome);
+        }
+        return;
+      }
+
+      // CASO 2: Tem QR Code - mostrar e iniciar polling
       if (result.qrcode) {
+        console.log('[ModalConectarWhatsApp] QR Code recebido, iniciando polling...');
         setQrcode(result.qrcode);
         setStatus('qrcode');
         iniciarPolling(nome);
-      } else {
-        throw new Error('QR Code não gerado');
+        return;
       }
+
+      // CASO 3: Sucesso mas sem QR Code e sem connected - erro
+      if (result.success && !result.qrcode && !result.connected) {
+        throw new Error('Resposta inesperada: sem QR Code e não conectado');
+      }
+
+      // CASO 4: Falha geral
+      throw new Error(result.message || 'Falha ao criar instância');
     } catch (err) {
       console.error('[ModalConectarWhatsApp] Erro:', err);
       setError(err instanceof Error ? err.message : 'Erro ao gerar QR Code');
@@ -174,13 +213,16 @@ export function ModalConectarWhatsApp({
 
   // Inicia conexão quando modal abre
   useEffect(() => {
-    if (isOpen) {
+    if (isOpen && !hasInitializedRef.current) {
+      hasInitializedRef.current = true;
       iniciarConexao();
-    } else {
-      // Cleanup quando fecha
+    } else if (!isOpen) {
+      // Cleanup quando fecha - resetar flag para próxima abertura
+      hasInitializedRef.current = false;
       resetState();
     }
-  }, [isOpen, iniciarConexao, resetState]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen]);
 
   // Cleanup no unmount
   useEffect(() => {

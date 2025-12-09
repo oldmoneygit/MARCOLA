@@ -33,9 +33,15 @@ interface ClientFiltersProps {
 
 const STATUS_OPTIONS = [
   { value: 'all', label: 'Todos os status' },
-  { value: 'active', label: 'Ativos' },
-  { value: 'paused', label: 'Pausados' },
-  { value: 'inactive', label: 'Inativos' },
+  // CRM Pipeline - ordenado por prioridade
+  { value: 'negotiation', label: '🟣 Em Negociação' },
+  { value: 'proposal', label: '🔵 Proposta Enviada' },
+  { value: 'follow_up', label: '🟠 Follow-up' },
+  { value: 'collection', label: '🔴 Em Cobrança' },
+  // Estados de cliente
+  { value: 'active', label: '🟢 Ativos' },
+  { value: 'paused', label: '🟡 Pausados' },
+  { value: 'inactive', label: '⚫ Inativos' },
 ];
 
 const SEGMENT_OPTIONS = [

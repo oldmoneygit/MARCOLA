@@ -88,7 +88,7 @@ export async function GET() {
 
 /**
  * POST /api/whatsapp-evolution/instancia
- * Cria uma nova instância WhatsApp para o usuário
+ * Cria uma nova instância WhatsApp para o usuário ou retorna QR Code da existente
  */
 export async function POST() {
   try {
@@ -103,31 +103,100 @@ export async function POST() {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
     }
 
+    console.log('[whatsapp-evolution/instancia] POST - Usuário:', user.id);
+
     // Verificar se já existe instância
     const { data: existingInstancia } = await supabase
       .from('whatsapp_instancias')
-      .select('id, instance_name')
+      .select('id, instance_name, status')
       .eq('gestor_id', user.id)
       .single();
 
     if (existingInstancia) {
-      // Retornar instância existente com QR Code
-      const qrResponse = await obterQRCode(existingInstancia.instance_name);
+      console.log('[whatsapp-evolution/instancia] Instância existente:', existingInstancia.instance_name);
 
-      return NextResponse.json({
-        success: true,
-        instanceName: existingInstancia.instance_name,
-        qrcode: qrResponse.qrcode,
-        pairingCode: qrResponse.pairingCode,
-        message: 'Instância já existe',
-      });
+      // PRIMEIRO: Verificar se já está conectado
+      try {
+        const statusResponse = await verificarStatus(existingInstancia.instance_name);
+        console.log('[whatsapp-evolution/instancia] Status atual:', statusResponse);
+
+        if (statusResponse.connected) {
+          // Já conectado - atualizar banco e retornar
+          await supabase
+            .from('whatsapp_instancias')
+            .update({
+              status: 'connected',
+              connected_at: new Date().toISOString(),
+            })
+            .eq('id', existingInstancia.id);
+
+          return NextResponse.json({
+            success: true,
+            instanceName: existingInstancia.instance_name,
+            connected: true,
+            message: 'WhatsApp já está conectado',
+          });
+        }
+      } catch (statusErr) {
+        console.warn('[whatsapp-evolution/instancia] Erro ao verificar status:', statusErr);
+        // Continuar tentando obter QR Code mesmo se status falhar
+      }
+
+      // NÃO conectado - Tentar obter QR Code
+      try {
+        const qrResponse = await obterQRCode(existingInstancia.instance_name);
+        console.log('[whatsapp-evolution/instancia] QR Code obtido para instância existente');
+
+        return NextResponse.json({
+          success: true,
+          instanceName: existingInstancia.instance_name,
+          qrcode: qrResponse.qrcode,
+          pairingCode: qrResponse.pairingCode,
+          message: 'QR Code gerado para instância existente',
+        });
+      } catch (qrErr) {
+        console.error('[whatsapp-evolution/instancia] Erro ao obter QR Code:', qrErr);
+
+        // QR Code falhou - tentar recriar a instância na Evolution API
+        console.log('[whatsapp-evolution/instancia] Tentando recriar instância na Evolution API...');
+        try {
+          const evolutionResponse = await criarInstanciaWhatsApp(existingInstancia.instance_name);
+          console.log('[whatsapp-evolution/instancia] Instância recriada:', {
+            success: evolutionResponse.success,
+            hasQrcode: !!evolutionResponse.qrcode,
+          });
+
+          if (evolutionResponse.qrcode) {
+            return NextResponse.json({
+              success: true,
+              instanceName: existingInstancia.instance_name,
+              qrcode: evolutionResponse.qrcode,
+              pairingCode: evolutionResponse.pairingCode,
+              message: 'Instância recriada com sucesso',
+            });
+          }
+        } catch (recreateErr) {
+          console.error('[whatsapp-evolution/instancia] Erro ao recriar:', recreateErr);
+        }
+
+        // Se tudo falhar, retornar erro
+        return NextResponse.json(
+          { error: 'Não foi possível obter QR Code. Tente novamente.' },
+          { status: 500 }
+        );
+      }
     }
 
-    // Gerar nome único para instância
+    // Não existe instância - criar nova
+    console.log('[whatsapp-evolution/instancia] Criando nova instância...');
     const instanceName = gerarNomeInstancia(user.id);
 
     // Criar instância na Evolution API
     const evolutionResponse = await criarInstanciaWhatsApp(instanceName);
+    console.log('[whatsapp-evolution/instancia] Resposta Evolution:', {
+      success: evolutionResponse.success,
+      hasQrcode: !!evolutionResponse.qrcode,
+    });
 
     if (!evolutionResponse.success) {
       return NextResponse.json(
@@ -152,11 +221,14 @@ export async function POST() {
       return NextResponse.json({ error: 'Erro ao salvar instância' }, { status: 500 });
     }
 
+    console.log('[whatsapp-evolution/instancia] Nova instância salva:', instanceName);
+
     return NextResponse.json({
       success: true,
       instancia: mapDbInstanciaToTs(newInstancia),
       instanceName,
       qrcode: evolutionResponse.qrcode,
+      pairingCode: evolutionResponse.pairingCode,
       message: 'Instância criada com sucesso',
     });
   } catch (error) {

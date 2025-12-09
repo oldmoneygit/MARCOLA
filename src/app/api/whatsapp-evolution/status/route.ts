@@ -62,6 +62,7 @@ export async function GET() {
     return NextResponse.json({
       success: true,
       hasInstance: true,
+      instanceName: instancia.instance_name,
       connected: statusResponse.connected,
       state: statusResponse.state,
       message: statusResponse.connected ? 'WhatsApp conectado' : 'WhatsApp desconectado',

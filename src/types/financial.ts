@@ -7,7 +7,7 @@
 /**
  * Status de pagamento
  */
-export type PaymentStatus = 'pending' | 'paid' | 'overdue' | 'cancelled';
+export type PaymentStatus = 'pending' | 'paid' | 'overdue' | 'cancelled' | 'inactive';
 
 /**
  * Interface de pagamento
@@ -43,9 +43,11 @@ export interface FinancialOverview {
   received: number;
   pending: number;
   overdue: number;
+  inactive: number;
   clientsPaid: number;
   clientsPending: number;
   clientsOverdue: number;
+  clientsInactive: number;
 }
 
 /**

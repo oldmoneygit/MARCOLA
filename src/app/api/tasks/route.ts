@@ -165,6 +165,34 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Erro ao criar tarefa' }, { status: 500 });
     }
 
+    // Auto-log: Registrar criação da tarefa
+    console.log('[tasks/POST] Criando auto-log para tarefa:', { taskId: task.id, taskTitle: task.title });
+    try {
+      const taskClient = task.client as { id: string; name: string } | null;
+      const insertData = {
+        user_id: user.id,
+        task_id: task.id,
+        client_id: taskClient?.id || null,
+        action_type: 'task_created',
+        title: `Tarefa criada: ${task.title}`,
+        description: task.description || null,
+        executed_by: task.assigned_to || null,
+        executed_at: new Date().toISOString(),
+      };
+      console.log('[tasks/POST] Auto-log inserindo:', insertData);
+
+      const { error: insertError } = await supabase.from('task_executions').insert(insertData);
+
+      if (insertError) {
+        console.error('[tasks/POST] Auto-log insert error:', insertError);
+      } else {
+        console.log('[tasks/POST] Auto-log criado com sucesso');
+      }
+    } catch (logError) {
+      // Não falhar a requisição por erro no auto-log
+      console.error('[tasks/POST] Auto-log exception:', logError);
+    }
+
     return NextResponse.json(task, { status: 201 });
   } catch (err) {
     console.error('[API] POST /api/tasks unexpected error:', err);

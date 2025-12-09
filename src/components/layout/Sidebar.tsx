@@ -27,6 +27,8 @@ import {
   IconSettings,
   IconArrowLeft,
   IconTarget,
+  IconHistory,
+  IconVideo,
 } from '@tabler/icons-react';
 
 import { useCurrentUser } from '@/hooks/useCurrentUser';
@@ -46,6 +48,7 @@ const iconMap: Record<string, React.ReactNode> = {
   clients: <IconUsers className="h-5 w-5 shrink-0" />,
   leads: <IconTarget className="h-5 w-5 shrink-0" />,
   tasks: <IconChecklist className="h-5 w-5 shrink-0" />,
+  meetings: <IconVideo className="h-5 w-5 shrink-0" />,
   calendar: <IconCalendar className="h-5 w-5 shrink-0" />,
   reports: <IconChartBar className="h-5 w-5 shrink-0" />,
   analysis: <IconBulb className="h-5 w-5 shrink-0" />,
@@ -53,6 +56,7 @@ const iconMap: Record<string, React.ReactNode> = {
   team: <IconUsersGroup className="h-5 w-5 shrink-0" />,
   whatsapp: <IconBrandWhatsapp className="h-5 w-5 shrink-0" />,
   financial: <IconWallet className="h-5 w-5 shrink-0" />,
+  historico: <IconHistory className="h-5 w-5 shrink-0" />,
 };
 
 /**

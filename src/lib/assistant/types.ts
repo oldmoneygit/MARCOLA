@@ -210,10 +210,14 @@ export interface ClientContext {
 
 export interface MeetingContext {
   id: string;
-  clientId: string;
-  clientName: string;
+  clientId?: string;
+  clientName?: string;
+  title: string;
   date: string;
   time: string;
+  type: 'online' | 'presencial';
+  priority?: 'low' | 'medium' | 'high' | 'urgent';
+  durationMinutes?: number;
 }
 
 export interface TaskContext {
@@ -246,6 +250,18 @@ export interface CalendarEventContext {
   platform?: string[];
 }
 
+export interface ExecutionContext {
+  id: string;
+  clientId?: string;
+  clientName?: string;
+  actionType: string;
+  title: string;
+  optimizationType?: string;
+  optimizationDetails?: string;
+  result?: string;
+  executedAt: string;
+}
+
 export interface UserContext {
   userId: string;
   userName: string;
@@ -256,6 +272,7 @@ export interface UserContext {
   calendarEvents: CalendarEventContext[];
   pendingTasks: TaskContext[];
   pendingPayments: PaymentContext[];
+  recentExecutions: ExecutionContext[];
   currentDate: string;
   currentTime: string;
   currentDayOfWeek: string;

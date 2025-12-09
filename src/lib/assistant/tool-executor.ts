@@ -154,6 +154,29 @@ export async function executeTool(
       case 'analisar_performance':
         return await analisarPerformance(userId, parameters);
 
+      // ==================== GESTÃO DE CLIENTES (AUTONOMIA IA) ====================
+      case 'atualizar_cliente':
+        return await atualizarCliente(userId, parameters);
+
+      case 'criar_cliente':
+        return await criarCliente(userId, parameters);
+
+      case 'criar_nota':
+        return await criarNota(userId, parameters);
+
+      case 'registrar_execucao':
+        return await registrarExecucao(userId, parameters);
+
+      // ==================== INTELIGÊNCIA PROATIVA ====================
+      case 'sugerir_acoes_prioritarias':
+        return await sugerirAcoesPrioritarias(userId, parameters);
+
+      case 'diagnostico_operacao':
+        return await diagnosticoOperacao(userId, parameters);
+
+      case 'pipeline_overview':
+        return await pipelineOverview(userId);
+
       // ==================== TOOLS AVANÇADOS ====================
       default: {
         // Verificar se é um tool avançado
@@ -2113,5 +2136,662 @@ async function executeLeadSniperListarPesquisas(
     pesquisas: pesquisas || [],
     total: pesquisas?.length || 0,
     message: `${pesquisas?.length || 0} pesquisas encontradas`
+  };
+}
+
+// ==================== GESTÃO DE CLIENTES (AUTONOMIA IA) ====================
+
+/**
+ * Atualiza dados de um cliente existente
+ */
+async function atualizarCliente(
+  userId: string,
+  params: Record<string, unknown>
+): Promise<ToolResult> {
+  const supabase = await createClient();
+  const clientId = params.clientId as string;
+
+  if (!clientId) {
+    return { success: false, error: 'ID do cliente é obrigatório' };
+  }
+
+  // Verificar se o cliente pertence ao usuário
+  const { data: existingClient, error: checkError } = await supabase
+    .from('clients')
+    .select('id, name, status')
+    .eq('id', clientId)
+    .eq('user_id', userId)
+    .single();
+
+  if (checkError || !existingClient) {
+    return { success: false, error: 'Cliente não encontrado' };
+  }
+
+  // Preparar dados para atualização
+  const updateData: Record<string, unknown> = {};
+
+  if (params.status) { updateData.status = params.status; }
+  if (params.contact_name) { updateData.contact_name = params.contact_name; }
+  if (params.contact_phone) { updateData.contact_phone = params.contact_phone; }
+  if (params.contact_email) { updateData.contact_email = params.contact_email; }
+  if (params.monthly_value) { updateData.monthly_value = params.monthly_value; }
+  if (params.due_day) { updateData.due_day = params.due_day; }
+
+  if (Object.keys(updateData).length === 0) {
+    return { success: false, error: 'Nenhum dado para atualizar' };
+  }
+
+  updateData.updated_at = new Date().toISOString();
+
+  const { error: updateError } = await supabase
+    .from('clients')
+    .update(updateData)
+    .eq('id', clientId)
+    .eq('user_id', userId);
+
+  if (updateError) {
+    return { success: false, error: formatDatabaseError(updateError) };
+  }
+
+  const statusLabels: Record<string, string> = {
+    negotiation: 'Em Negociação',
+    proposal: 'Proposta Enviada',
+    follow_up: 'Follow-up',
+    collection: 'Em Cobrança',
+    active: 'Ativo',
+    paused: 'Pausado',
+    inactive: 'Inativo'
+  };
+
+  const statusMsg = params.status
+    ? ` Status alterado para: ${statusLabels[params.status as string] || params.status}`
+    : '';
+
+  return {
+    success: true,
+    data: {
+      clientId,
+      clientName: existingClient.name,
+      previousStatus: existingClient.status,
+      newStatus: params.status || existingClient.status,
+      updatedFields: Object.keys(updateData),
+      message: `Cliente "${existingClient.name}" atualizado com sucesso!${statusMsg}`
+    }
+  };
+}
+
+/**
+ * Cria um novo cliente no sistema
+ */
+async function criarCliente(
+  userId: string,
+  params: Record<string, unknown>
+): Promise<ToolResult> {
+  const supabase = await createClient();
+
+  const name = params.name as string;
+  const segment = params.segment as string;
+
+  if (!name || !segment) {
+    return { success: false, error: 'Nome e segmento são obrigatórios' };
+  }
+
+  const newClient = {
+    user_id: userId,
+    name,
+    segment,
+    status: (params.status as string) || 'negotiation',
+    contact_name: params.contact_name || null,
+    contact_phone: params.contact_phone || null,
+    contact_email: params.contact_email || null,
+    monthly_value: params.monthly_value || 0,
+    due_day: params.due_day || 10,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString()
+  };
+
+  const { data: client, error } = await supabase
+    .from('clients')
+    .insert(newClient)
+    .select('id, name, status')
+    .single();
+
+  if (error) {
+    return { success: false, error: formatDatabaseError(error) };
+  }
+
+  return {
+    success: true,
+    data: {
+      clientId: client.id,
+      clientName: client.name,
+      status: client.status,
+      message: `Cliente "${name}" criado com sucesso no status "${client.status}"!`
+    }
+  };
+}
+
+/**
+ * Cria uma nota sobre um cliente
+ */
+async function criarNota(
+  userId: string,
+  params: Record<string, unknown>
+): Promise<ToolResult> {
+  const supabase = await createClient();
+
+  const clientId = params.clientId as string;
+  const content = params.content as string;
+  const type = (params.type as string) || 'general';
+
+  if (!clientId || !content) {
+    return { success: false, error: 'ID do cliente e conteúdo são obrigatórios' };
+  }
+
+  // Verificar se o cliente existe
+  const { data: client, error: clientError } = await supabase
+    .from('clients')
+    .select('id, name')
+    .eq('id', clientId)
+    .eq('user_id', userId)
+    .single();
+
+  if (clientError || !client) {
+    return { success: false, error: 'Cliente não encontrado' };
+  }
+
+  const { data: note, error } = await supabase
+    .from('client_notes')
+    .insert({
+      user_id: userId,
+      client_id: clientId,
+      content,
+      type,
+      created_at: new Date().toISOString()
+    })
+    .select('id')
+    .single();
+
+  if (error) {
+    return { success: false, error: formatDatabaseError(error) };
+  }
+
+  return {
+    success: true,
+    data: {
+      noteId: note.id,
+      clientId,
+      clientName: client.name,
+      type,
+      message: `Nota adicionada ao cliente "${client.name}"!`
+    }
+  };
+}
+
+/**
+ * Registra uma execução/ação no histórico
+ */
+async function registrarExecucao(
+  userId: string,
+  params: Record<string, unknown>
+): Promise<ToolResult> {
+  const supabase = await createClient();
+
+  const actionType = params.actionType as string;
+  const title = params.title as string;
+
+  if (!actionType || !title) {
+    return { success: false, error: 'Tipo de ação e título são obrigatórios' };
+  }
+
+  const execution = {
+    user_id: userId,
+    client_id: params.clientId || null,
+    action_type: actionType,
+    title,
+    description: params.description || null,
+    optimization_type: params.optimizationType || null,
+    result: params.result || 'success',
+    executed_at: new Date().toISOString(),
+    created_at: new Date().toISOString()
+  };
+
+  const { data, error } = await supabase
+    .from('task_executions')
+    .insert(execution)
+    .select('id')
+    .single();
+
+  if (error) {
+    return { success: false, error: formatDatabaseError(error) };
+  }
+
+  return {
+    success: true,
+    data: {
+      executionId: data.id,
+      actionType,
+      title,
+      message: `Execução "${title}" registrada com sucesso!`
+    }
+  };
+}
+
+// ==================== INTELIGÊNCIA PROATIVA ====================
+
+/**
+ * Sugere ações prioritárias baseado no pipeline CRM
+ */
+async function sugerirAcoesPrioritarias(
+  userId: string,
+  params: Record<string, unknown>
+): Promise<ToolResult> {
+  const supabase = await createClient();
+  const foco = (params.foco as string) || 'geral';
+
+  // Buscar dados para análise
+  const [clientsResult, tasksResult, paymentsResult, meetingsResult] = await Promise.all([
+    supabase
+      .from('clients')
+      .select('id, name, status, monthly_value, contact_phone, contact_name')
+      .eq('user_id', userId)
+      .neq('status', 'inactive'),
+    supabase
+      .from('tasks')
+      .select('id, title, client_id, due_date, priority, status')
+      .eq('user_id', userId)
+      .in('status', ['todo', 'doing'])
+      .order('due_date', { ascending: true })
+      .limit(20),
+    supabase
+      .from('payments')
+      .select('id, client_id, amount, due_date, status')
+      .eq('user_id', userId)
+      .in('status', ['pending', 'overdue'])
+      .order('due_date', { ascending: true })
+      .limit(20),
+    supabase
+      .from('meetings')
+      .select('id, client_id, date, time')
+      .eq('user_id', userId)
+      .gte('date', new Date().toISOString().split('T')[0])
+      .order('date', { ascending: true })
+      .limit(10)
+  ]);
+
+  const clients = clientsResult.data || [];
+  const tasks = tasksResult.data || [];
+  const payments = paymentsResult.data || [];
+  const meetings = meetingsResult.data || [];
+
+  // Criar mapa de clientes para lookup rápido
+  const clientMap = new Map(clients.map(c => [c.id, c]));
+
+  // Organizar sugestões por prioridade
+  const sugestoes: Array<{
+    prioridade: number;
+    tipo: string;
+    acao: string;
+    cliente?: string;
+    clienteId?: string;
+    detalhe: string;
+    urgencia: 'critica' | 'alta' | 'media' | 'baixa';
+  }> = [];
+
+  // PRIORIDADE 1: Clientes em negociação (hot leads)
+  const emNegociacao = clients.filter(c => c.status === 'negotiation');
+  emNegociacao.forEach(c => {
+    sugestoes.push({
+      prioridade: 1,
+      tipo: 'vendas',
+      acao: 'Fazer follow-up urgente',
+      cliente: c.name,
+      clienteId: c.id,
+      detalhe: `Lead quente! ${c.contact_name ? `Contato: ${c.contact_name}` : ''} ${c.contact_phone ? `Tel: ${c.contact_phone}` : ''}`,
+      urgencia: 'critica'
+    });
+  });
+
+  // PRIORIDADE 2: Clientes com proposta enviada
+  const comProposta = clients.filter(c => c.status === 'proposal');
+  comProposta.forEach(c => {
+    sugestoes.push({
+      prioridade: 2,
+      tipo: 'vendas',
+      acao: 'Fazer follow-up da proposta',
+      cliente: c.name,
+      clienteId: c.id,
+      detalhe: `Proposta enviada - verificar interesse. ${c.monthly_value ? `Valor: R$ ${c.monthly_value}` : ''}`,
+      urgencia: 'alta'
+    });
+  });
+
+  // PRIORIDADE 3: Pagamentos atrasados
+  const pagamentosAtrasados = payments.filter(p => p.status === 'overdue');
+  pagamentosAtrasados.forEach(p => {
+    const client = clientMap.get(p.client_id);
+    sugestoes.push({
+      prioridade: 3,
+      tipo: 'cobranca',
+      acao: 'Cobrar pagamento atrasado',
+      cliente: client?.name || 'Cliente',
+      clienteId: p.client_id,
+      detalhe: `R$ ${p.amount} vencido em ${new Date(p.due_date).toLocaleDateString('pt-BR')}`,
+      urgencia: 'alta'
+    });
+  });
+
+  // PRIORIDADE 4: Clientes em follow-up
+  const emFollowUp = clients.filter(c => c.status === 'follow_up');
+  emFollowUp.forEach(c => {
+    sugestoes.push({
+      prioridade: 4,
+      tipo: 'vendas',
+      acao: 'Entrar em contato',
+      cliente: c.name,
+      clienteId: c.id,
+      detalhe: 'Cliente precisa de acompanhamento',
+      urgencia: 'media'
+    });
+  });
+
+  // PRIORIDADE 5: Tarefas urgentes
+  const tarefasUrgentes = tasks.filter(t => t.priority === 'urgent' || t.priority === 'high');
+  tarefasUrgentes.slice(0, 5).forEach(t => {
+    const client = t.client_id ? clientMap.get(t.client_id) : null;
+    sugestoes.push({
+      prioridade: 5,
+      tipo: 'entrega',
+      acao: t.title,
+      cliente: client?.name,
+      clienteId: t.client_id || undefined,
+      detalhe: `Tarefa ${t.priority === 'urgent' ? 'URGENTE' : 'alta prioridade'}`,
+      urgencia: t.priority === 'urgent' ? 'critica' : 'alta'
+    });
+  });
+
+  // PRIORIDADE 6: Reuniões de hoje
+  const hoje = new Date().toISOString().split('T')[0];
+  const reunioesHoje = meetings.filter(m => m.date === hoje);
+  reunioesHoje.forEach(m => {
+    const client = clientMap.get(m.client_id);
+    sugestoes.push({
+      prioridade: 6,
+      tipo: 'entrega',
+      acao: 'Reunião agendada',
+      cliente: client?.name || 'Cliente',
+      clienteId: m.client_id,
+      detalhe: `Hoje às ${m.time}`,
+      urgencia: 'alta'
+    });
+  });
+
+  // Filtrar por foco se especificado
+  let sugestoesFiltradas = sugestoes;
+  if (foco !== 'geral') {
+    sugestoesFiltradas = sugestoes.filter(s => s.tipo === foco);
+  }
+
+  // Ordenar por prioridade e urgência
+  sugestoesFiltradas.sort((a, b) => {
+    if (a.prioridade !== b.prioridade) { return a.prioridade - b.prioridade; }
+    const urgenciaOrder = { critica: 0, alta: 1, media: 2, baixa: 3 };
+    return urgenciaOrder[a.urgencia] - urgenciaOrder[b.urgencia];
+  });
+
+  return {
+    success: true,
+    data: {
+      sugestoes: sugestoesFiltradas.slice(0, 10),
+      resumo: {
+        emNegociacao: emNegociacao.length,
+        comProposta: comProposta.length,
+        emFollowUp: emFollowUp.length,
+        pagamentosAtrasados: pagamentosAtrasados.length,
+        tarefasUrgentes: tarefasUrgentes.length,
+        reunioesHoje: reunioesHoje.length
+      },
+      foco,
+      message: `${sugestoesFiltradas.length} ações sugeridas. ${emNegociacao.length} leads quentes, ${pagamentosAtrasados.length} pagamentos atrasados.`
+    }
+  };
+}
+
+/**
+ * Faz diagnóstico da operação ou de um cliente específico
+ */
+async function diagnosticoOperacao(
+  userId: string,
+  params: Record<string, unknown>
+): Promise<ToolResult> {
+  const supabase = await createClient();
+  const clientId = params.clientId as string | undefined;
+
+  if (clientId) {
+    // Diagnóstico de cliente específico
+    const { data: client, error: clientError } = await supabase
+      .from('clients')
+      .select('*')
+      .eq('id', clientId)
+      .eq('user_id', userId)
+      .single();
+
+    if (clientError || !client) {
+      return { success: false, error: 'Cliente não encontrado' };
+    }
+
+    const [tasksResult, paymentsResult, notesResult] = await Promise.all([
+      supabase
+        .from('tasks')
+        .select('id, status, priority')
+        .eq('client_id', clientId)
+        .eq('user_id', userId),
+      supabase
+        .from('payments')
+        .select('id, status, amount')
+        .eq('client_id', clientId)
+        .eq('user_id', userId),
+      supabase
+        .from('client_notes')
+        .select('id, created_at')
+        .eq('client_id', clientId)
+        .order('created_at', { ascending: false })
+        .limit(5)
+    ]);
+
+    const tasks = tasksResult.data || [];
+    const payments = paymentsResult.data || [];
+    const notes = notesResult.data || [];
+
+    const tarefasPendentes = tasks.filter(t => t.status !== 'done').length;
+    const pagamentosAtrasados = payments.filter(p => p.status === 'overdue').length;
+    const totalRecebido = payments.filter(p => p.status === 'paid').reduce((sum, p) => sum + p.amount, 0);
+
+    const statusLabels: Record<string, string> = {
+      negotiation: 'Em Negociação',
+      proposal: 'Proposta Enviada',
+      follow_up: 'Follow-up',
+      collection: 'Em Cobrança',
+      active: 'Ativo',
+      paused: 'Pausado',
+      inactive: 'Inativo'
+    };
+
+    return {
+      success: true,
+      data: {
+        cliente: {
+          nome: client.name,
+          status: statusLabels[client.status] || client.status,
+          segmento: client.segment,
+          valorMensal: client.monthly_value,
+          contato: client.contact_name,
+          telefone: client.contact_phone
+        },
+        metricas: {
+          tarefasPendentes,
+          pagamentosAtrasados,
+          totalRecebido,
+          notasRecentes: notes.length
+        },
+        alertas: [
+          ...(pagamentosAtrasados > 0 ? [`⚠️ ${pagamentosAtrasados} pagamento(s) atrasado(s)`] : []),
+          ...(tarefasPendentes > 3 ? [`⚠️ ${tarefasPendentes} tarefas pendentes`] : []),
+          ...(client.status === 'collection' ? ['🔴 Cliente em cobrança'] : [])
+        ],
+        message: `Diagnóstico de "${client.name}": ${tarefasPendentes} tarefas pendentes, ${pagamentosAtrasados} pagamentos atrasados.`
+      }
+    };
+  }
+
+  // Diagnóstico geral da operação
+  const [clientsResult, tasksResult, paymentsResult] = await Promise.all([
+    supabase
+      .from('clients')
+      .select('id, status, monthly_value')
+      .eq('user_id', userId),
+    supabase
+      .from('tasks')
+      .select('id, status, priority')
+      .eq('user_id', userId)
+      .in('status', ['todo', 'doing']),
+    supabase
+      .from('payments')
+      .select('id, status, amount')
+      .eq('user_id', userId)
+      .in('status', ['pending', 'overdue'])
+  ]);
+
+  const clients = clientsResult.data || [];
+  const tasks = tasksResult.data || [];
+  const payments = paymentsResult.data || [];
+
+  // Contagens por status CRM
+  const pipeline = {
+    negotiation: clients.filter(c => c.status === 'negotiation').length,
+    proposal: clients.filter(c => c.status === 'proposal').length,
+    follow_up: clients.filter(c => c.status === 'follow_up').length,
+    collection: clients.filter(c => c.status === 'collection').length,
+    active: clients.filter(c => c.status === 'active').length,
+    paused: clients.filter(c => c.status === 'paused').length,
+    inactive: clients.filter(c => c.status === 'inactive').length
+  };
+
+  const receitaAtivos = clients
+    .filter(c => c.status === 'active')
+    .reduce((sum, c) => sum + (c.monthly_value || 0), 0);
+
+  const receitaPotencial = clients
+    .filter(c => ['negotiation', 'proposal', 'follow_up'].includes(c.status))
+    .reduce((sum, c) => sum + (c.monthly_value || 0), 0);
+
+  const pagamentosAtrasados = payments.filter(p => p.status === 'overdue');
+  const valorAtrasado = pagamentosAtrasados.reduce((sum, p) => sum + p.amount, 0);
+
+  const tarefasUrgentes = tasks.filter(t => t.priority === 'urgent' || t.priority === 'high').length;
+
+  const alertas: string[] = [];
+  if (pagamentosAtrasados.length > 0) { alertas.push(`🔴 ${pagamentosAtrasados.length} pagamentos atrasados (R$ ${valorAtrasado.toFixed(2)})`); }
+  if (tarefasUrgentes > 0) { alertas.push(`⚠️ ${tarefasUrgentes} tarefas urgentes/alta prioridade`); }
+  if (pipeline.negotiation > 0) { alertas.push(`🟣 ${pipeline.negotiation} leads quentes aguardando ação!`); }
+  if (pipeline.collection > 0) { alertas.push(`🔴 ${pipeline.collection} clientes em cobrança`); }
+
+  return {
+    success: true,
+    data: {
+      pipeline,
+      financeiro: {
+        receitaMensal: receitaAtivos,
+        receitaPotencial,
+        valorAtrasado,
+        pagamentosPendentes: payments.length
+      },
+      operacional: {
+        tarefasPendentes: tasks.length,
+        tarefasUrgentes,
+        clientesTotal: clients.length,
+        clientesAtivos: pipeline.active
+      },
+      alertas,
+      message: `Operação: ${pipeline.active} clientes ativos (R$ ${receitaAtivos.toFixed(2)}/mês). ${pipeline.negotiation + pipeline.proposal} oportunidades no funil. ${alertas.length} alertas.`
+    }
+  };
+}
+
+/**
+ * Retorna visão geral do pipeline CRM
+ */
+async function pipelineOverview(userId: string): Promise<ToolResult> {
+  const supabase = await createClient();
+
+  const { data: clients, error } = await supabase
+    .from('clients')
+    .select('id, name, status, monthly_value, contact_name, contact_phone')
+    .eq('user_id', userId);
+
+  if (error) {
+    return { success: false, error: formatDatabaseError(error) };
+  }
+
+  const pipeline: Record<string, Array<{ id: string; name: string; value: number; contact?: string }>> = {
+    negotiation: [],
+    proposal: [],
+    follow_up: [],
+    collection: [],
+    active: [],
+    paused: [],
+    inactive: []
+  };
+
+  const totais: Record<string, { count: number; value: number }> = {
+    negotiation: { count: 0, value: 0 },
+    proposal: { count: 0, value: 0 },
+    follow_up: { count: 0, value: 0 },
+    collection: { count: 0, value: 0 },
+    active: { count: 0, value: 0 },
+    paused: { count: 0, value: 0 },
+    inactive: { count: 0, value: 0 }
+  };
+
+  (clients || []).forEach(c => {
+    const status = c.status as string;
+    if (pipeline[status] && totais[status]) {
+      pipeline[status].push({
+        id: c.id,
+        name: c.name,
+        value: c.monthly_value || 0,
+        contact: c.contact_name || c.contact_phone
+      });
+      totais[status].count++;
+      totais[status].value += c.monthly_value || 0;
+    }
+  });
+
+  const statusLabels: Record<string, string> = {
+    negotiation: '🟣 Em Negociação',
+    proposal: '🔵 Proposta Enviada',
+    follow_up: '🟠 Follow-up',
+    collection: '🔴 Em Cobrança',
+    active: '🟢 Ativos',
+    paused: '🟡 Pausados',
+    inactive: '⚫ Inativos'
+  };
+
+  // Formatar resumo legível
+  const resumo = Object.entries(totais)
+    .filter(([, data]) => data.count > 0)
+    .map(([status, data]) => `${statusLabels[status]}: ${data.count} (R$ ${data.value.toFixed(2)})`)
+    .join('\n');
+
+  return {
+    success: true,
+    data: {
+      pipeline,
+      totais,
+      totalClientes: clients?.length || 0,
+      receitaPotencial: (totais.negotiation?.value || 0) + (totais.proposal?.value || 0) + (totais.follow_up?.value || 0),
+      receitaAtiva: totais.active?.value || 0,
+      message: `Pipeline CRM:\n${resumo}`
+    }
   };
 }

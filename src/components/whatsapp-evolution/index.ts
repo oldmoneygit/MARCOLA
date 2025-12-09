@@ -6,5 +6,6 @@
 
 export { ModalConectarWhatsApp } from './ModalConectarWhatsApp';
 export { WhatsAppStatusCard } from './WhatsAppStatusCard';
+export { WhatsAppStatusBadge, WhatsAppStatusDot } from './WhatsAppStatusBadge';
 export { BotaoEnviarWhatsApp } from './BotaoEnviarWhatsApp';
 export { ModalEnviarWhatsApp } from './ModalEnviarWhatsApp';

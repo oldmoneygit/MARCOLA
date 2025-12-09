@@ -1,14 +1,18 @@
 /**
  * @file WhatsAppStatusCard.tsx
- * @description Card para exibir status da conexão WhatsApp
+ * @description Card para exibir status da conexão WhatsApp com verificação automática
  * @module components/whatsapp-evolution
+ *
+ * @example
+ * <WhatsAppStatusCard onStatusChange={(connected) => console.log(connected)} />
  */
 
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
-import { Smartphone, Loader2, Unplug, Link2 } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Smartphone, Loader2, Unplug, Link2, RefreshCw } from 'lucide-react';
 
+import { useWhatsAppEvolution } from '@/hooks/useWhatsAppEvolution';
 import { ModalConectarWhatsApp } from './ModalConectarWhatsApp';
 
 interface WhatsAppStatusCardProps {
@@ -16,28 +20,27 @@ interface WhatsAppStatusCardProps {
 }
 
 export function WhatsAppStatusCard({ onStatusChange }: WhatsAppStatusCardProps) {
-  const [connected, setConnected] = useState(false);
-  const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [disconnecting, setDisconnecting] = useState(false);
 
-  const checkStatus = useCallback(async () => {
-    try {
-      const response = await fetch('/api/whatsapp-evolution/status');
-      const data = await response.json();
-      setConnected(data.connected);
-      onStatusChange?.(data.connected);
-    } catch (err) {
-      setConnected(false);
-      onStatusChange?.(false);
-    } finally {
-      setLoading(false);
-    }
-  }, [onStatusChange]);
+  const {
+    status,
+    isConnected,
+    lastCheck,
+    error,
+    disconnect,
+    refresh,
+  } = useWhatsAppEvolution({
+    enableHeartbeat: false, // Desabilitado - usuário usa botão refresh manual
+    onStatusChange: (newStatus) => {
+      onStatusChange?.(newStatus === 'connected');
+    },
+  });
 
+  // Notificar mudança de conexão
   useEffect(() => {
-    checkStatus();
-  }, [checkStatus]);
+    onStatusChange?.(isConnected);
+  }, [isConnected, onStatusChange]);
 
   const handleDisconnect = async () => {
     if (!confirm('Deseja realmente desconectar o WhatsApp?')) {
@@ -46,25 +49,20 @@ export function WhatsAppStatusCard({ onStatusChange }: WhatsAppStatusCardProps) 
 
     try {
       setDisconnecting(true);
-      await fetch('/api/whatsapp-evolution/instancia', {
-        method: 'DELETE',
-      });
-      setConnected(false);
-      onStatusChange?.(false);
-    } catch (err) {
-      console.error('[WhatsAppStatusCard] Erro ao desconectar:', err);
+      await disconnect();
     } finally {
       setDisconnecting(false);
     }
   };
 
   const handleConnected = () => {
-    setConnected(true);
     setShowModal(false);
-    onStatusChange?.(true);
+    refresh();
   };
 
-  if (loading) {
+  const isLoading = status === 'checking';
+
+  if (isLoading && !lastCheck) {
     return (
       <div className="backdrop-blur-xl bg-white/[0.03] border border-white/[0.08] rounded-xl p-4 animate-pulse">
         <div className="flex items-center gap-3">
@@ -85,11 +83,11 @@ export function WhatsAppStatusCard({ onStatusChange }: WhatsAppStatusCardProps) 
           <div className="flex items-center gap-3">
             <div
               className={`w-10 h-10 rounded-full flex items-center justify-center ${
-                connected ? 'bg-emerald-500/20' : 'bg-zinc-500/20'
+                isConnected ? 'bg-emerald-500/20' : 'bg-zinc-500/20'
               }`}
             >
               <Smartphone
-                className={`w-5 h-5 ${connected ? 'text-emerald-400' : 'text-zinc-400'}`}
+                className={`w-5 h-5 ${isConnected ? 'text-emerald-400' : 'text-zinc-400'}`}
               />
             </div>
 
@@ -98,43 +96,78 @@ export function WhatsAppStatusCard({ onStatusChange }: WhatsAppStatusCardProps) 
               <div className="flex items-center gap-2">
                 <div
                   className={`w-2 h-2 rounded-full ${
-                    connected ? 'bg-emerald-500' : 'bg-zinc-500'
+                    isConnected ? 'bg-emerald-500' : status === 'error' ? 'bg-red-500' : 'bg-zinc-500'
                   }`}
                 />
                 <span
                   className={`text-sm ${
-                    connected ? 'text-emerald-400' : 'text-zinc-500'
+                    isConnected
+                      ? 'text-emerald-400'
+                      : status === 'error'
+                      ? 'text-red-400'
+                      : 'text-zinc-500'
                   }`}
                 >
-                  {connected ? 'Conectado' : 'Desconectado'}
+                  {isConnected
+                    ? 'Conectado'
+                    : status === 'error'
+                    ? 'Erro'
+                    : status === 'no_instance'
+                    ? 'Não configurado'
+                    : 'Desconectado'}
                 </span>
+                {status === 'checking' && (
+                  <Loader2 className="w-3 h-3 text-zinc-500 animate-spin" />
+                )}
               </div>
+              {error && (
+                <p className="text-xs text-red-400 mt-1">{error}</p>
+              )}
             </div>
           </div>
 
-          {connected ? (
+          <div className="flex items-center gap-2">
+            {/* Botão de refresh */}
             <button
-              onClick={handleDisconnect}
-              disabled={disconnecting}
-              className="flex items-center gap-2 px-4 py-2 text-red-400 border border-red-500/30 rounded-lg hover:bg-red-500/10 transition-colors disabled:opacity-50"
+              onClick={() => refresh()}
+              disabled={status === 'checking'}
+              className="p-2 text-zinc-400 hover:text-white hover:bg-white/[0.05] rounded-lg transition-colors disabled:opacity-50"
+              title="Atualizar status"
             >
-              {disconnecting ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : (
-                <Unplug className="w-4 h-4" />
-              )}
-              <span className="text-sm">Desconectar</span>
+              <RefreshCw className={`w-4 h-4 ${status === 'checking' ? 'animate-spin' : ''}`} />
             </button>
-          ) : (
-            <button
-              onClick={() => setShowModal(true)}
-              className="flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition-colors"
-            >
-              <Link2 className="w-4 h-4" />
-              <span className="text-sm">Conectar</span>
-            </button>
-          )}
+
+            {isConnected ? (
+              <button
+                onClick={handleDisconnect}
+                disabled={disconnecting}
+                className="flex items-center gap-2 px-4 py-2 text-red-400 border border-red-500/30 rounded-lg hover:bg-red-500/10 transition-colors disabled:opacity-50"
+              >
+                {disconnecting ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Unplug className="w-4 h-4" />
+                )}
+                <span className="text-sm">Desconectar</span>
+              </button>
+            ) : (
+              <button
+                onClick={() => setShowModal(true)}
+                className="flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition-colors"
+              >
+                <Link2 className="w-4 h-4" />
+                <span className="text-sm">Conectar</span>
+              </button>
+            )}
+          </div>
         </div>
+
+        {/* Última verificação */}
+        {lastCheck && (
+          <p className="text-xs text-zinc-600 mt-3 text-right">
+            Última verificação: {lastCheck.toLocaleTimeString('pt-BR')}
+          </p>
+        )}
       </div>
 
       <ModalConectarWhatsApp

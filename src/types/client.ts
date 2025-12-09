@@ -7,9 +7,25 @@
 import type { BriefingData } from './briefing';
 
 /**
- * Status possíveis de um cliente
+ * Status possíveis de um cliente (CRM Pipeline)
+ *
+ * Fluxo de prioridade para IA:
+ * 1. negotiation - Em negociação (leads quentes)
+ * 2. proposal - Proposta enviada, aguardando resposta
+ * 3. follow_up - Precisa de acompanhamento
+ * 4. collection - Foco em cobrança
+ * 5. active - Cliente ativo em operação
+ * 6. paused - Temporariamente pausado
+ * 7. inactive - Inativo/cancelado
  */
-export type ClientStatus = 'active' | 'paused' | 'inactive';
+export type ClientStatus =
+  | 'negotiation'  // Em negociação
+  | 'proposal'     // Proposta aberta/enviada
+  | 'follow_up'    // Follow-up pendente
+  | 'collection'   // Em cobrança
+  | 'active'       // Cliente ativo
+  | 'paused'       // Pausado temporariamente
+  | 'inactive';    // Inativo/cancelado
 
 /**
  * Frequência de reuniões com o cliente

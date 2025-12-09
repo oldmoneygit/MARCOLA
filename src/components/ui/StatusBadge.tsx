@@ -12,7 +12,21 @@
 
 import { cn } from '@/lib/utils';
 
-type BadgeStatus = 'active' | 'paused' | 'inactive' | 'success' | 'warning' | 'danger' | 'info';
+type BadgeStatus =
+  // CRM Pipeline statuses
+  | 'negotiation'
+  | 'proposal'
+  | 'follow_up'
+  | 'collection'
+  | 'active'
+  | 'paused'
+  | 'inactive'
+  // Generic semantic statuses
+  | 'success'
+  | 'warning'
+  | 'danger'
+  | 'info';
+
 type BadgeSize = 'sm' | 'md' | 'lg';
 
 interface StatusBadgeProps {
@@ -34,13 +48,32 @@ const statusStyles: Record<BadgeStatus, {
   borderColor: string;
   dotColor: string;
 }> = {
-  active: {
-    bgColor: 'bg-emerald-500/15',
-    textColor: 'text-emerald-300',
-    borderColor: 'border-emerald-500/40',
-    dotColor: 'bg-emerald-400',
+  // CRM Pipeline statuses
+  negotiation: {
+    bgColor: 'bg-violet-500/15',
+    textColor: 'text-violet-300',
+    borderColor: 'border-violet-500/40',
+    dotColor: 'bg-violet-400',
   },
-  success: {
+  proposal: {
+    bgColor: 'bg-blue-500/15',
+    textColor: 'text-blue-300',
+    borderColor: 'border-blue-500/40',
+    dotColor: 'bg-blue-400',
+  },
+  follow_up: {
+    bgColor: 'bg-orange-500/15',
+    textColor: 'text-orange-300',
+    borderColor: 'border-orange-500/40',
+    dotColor: 'bg-orange-400',
+  },
+  collection: {
+    bgColor: 'bg-rose-500/15',
+    textColor: 'text-rose-300',
+    borderColor: 'border-rose-500/40',
+    dotColor: 'bg-rose-400',
+  },
+  active: {
     bgColor: 'bg-emerald-500/15',
     textColor: 'text-emerald-300',
     borderColor: 'border-emerald-500/40',
@@ -52,17 +85,24 @@ const statusStyles: Record<BadgeStatus, {
     borderColor: 'border-amber-500/40',
     dotColor: 'bg-amber-400',
   },
-  warning: {
-    bgColor: 'bg-amber-500/15',
-    textColor: 'text-amber-300',
-    borderColor: 'border-amber-500/40',
-    dotColor: 'bg-amber-400',
-  },
   inactive: {
     bgColor: 'bg-zinc-500/15',
     textColor: 'text-zinc-300',
     borderColor: 'border-zinc-500/40',
     dotColor: 'bg-zinc-400',
+  },
+  // Generic semantic statuses
+  success: {
+    bgColor: 'bg-emerald-500/15',
+    textColor: 'text-emerald-300',
+    borderColor: 'border-emerald-500/40',
+    dotColor: 'bg-emerald-400',
+  },
+  warning: {
+    bgColor: 'bg-amber-500/15',
+    textColor: 'text-amber-300',
+    borderColor: 'border-amber-500/40',
+    dotColor: 'bg-amber-400',
   },
   danger: {
     bgColor: 'bg-red-500/15',
@@ -79,9 +119,15 @@ const statusStyles: Record<BadgeStatus, {
 };
 
 const statusLabels: Record<BadgeStatus, string> = {
+  // CRM Pipeline
+  negotiation: 'Em Negociação',
+  proposal: 'Proposta Enviada',
+  follow_up: 'Follow-up',
+  collection: 'Em Cobrança',
   active: 'Ativo',
   paused: 'Pausado',
   inactive: 'Inativo',
+  // Generic
   success: 'Sucesso',
   warning: 'Atenção',
   danger: 'Erro',

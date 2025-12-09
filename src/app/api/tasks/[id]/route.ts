@@ -119,6 +119,10 @@ export async function PUT(request: NextRequest, context: RouteContext) {
       updateData.completed_at = new Date().toISOString();
     }
 
+    // Detectar mudança de status para auto-log
+    const previousStatus = existingTask.status;
+    const newStatus = body.status;
+
     const { data: task, error } = await supabase
       .from('tasks')
       .update(updateData)
@@ -134,6 +138,55 @@ export async function PUT(request: NextRequest, context: RouteContext) {
     if (error) {
       console.error('[API] PUT /api/tasks/[id] error:', error);
       return NextResponse.json({ error: 'Erro ao atualizar tarefa' }, { status: 500 });
+    }
+
+    // Auto-log: Registrar execução quando status muda
+    console.log('[tasks/PUT] Verificando auto-log:', { previousStatus, newStatus, taskId: task.id });
+    if (newStatus && newStatus !== previousStatus) {
+      console.log('[tasks/PUT] Status mudou - criando execução');
+      try {
+        const client = task.client as { id: string; name: string } | null;
+        let actionType: string | null = null;
+        let title = '';
+
+        if (newStatus === 'done') {
+          actionType = 'task_completed';
+          title = `Tarefa concluída: ${task.title}`;
+        } else if (newStatus === 'doing' && previousStatus === 'todo') {
+          actionType = 'task_started';
+          title = `Tarefa iniciada: ${task.title}`;
+        } else if (newStatus === 'cancelled') {
+          actionType = 'task_cancelled';
+          title = `Tarefa cancelada: ${task.title}`;
+        }
+
+        console.log('[tasks/PUT] Action type determinado:', { actionType, title });
+
+        if (actionType) {
+          const insertData = {
+            user_id: user.id,
+            task_id: task.id,
+            client_id: client?.id || null,
+            action_type: actionType,
+            title,
+            description: task.description || null,
+            executed_by: task.assigned_to || null,
+            executed_at: new Date().toISOString(),
+          };
+          console.log('[tasks/PUT] Auto-log inserindo:', insertData);
+
+          const { error: insertError } = await supabase.from('task_executions').insert(insertData);
+
+          if (insertError) {
+            console.error('[tasks/PUT] Auto-log insert error:', insertError);
+          } else {
+            console.log('[tasks/PUT] Auto-log criado com sucesso');
+          }
+        }
+      } catch (logError) {
+        // Não falhar a requisição por erro no auto-log
+        console.error('[tasks/PUT] Auto-log exception:', logError);
+      }
     }
 
     return NextResponse.json(task);

@@ -6,7 +6,7 @@
 
 import { createClient } from '@/lib/supabase/server';
 
-import type { UserContext, ClientContext, MeetingContext, CalendarEventContext, TaskContext, PaymentContext } from './types';
+import type { UserContext, ClientContext, MeetingContext, CalendarEventContext, TaskContext, PaymentContext, ExecutionContext } from './types';
 
 /**
  * Obtém o dia da semana em português
@@ -107,16 +107,20 @@ async function fetchUpcomingMeetings(supabase: ReturnType<typeof createClient>, 
     .from('meetings')
     .select(`
       id,
+      title,
       date,
       time,
-      client:clients!inner(id, name)
+      type,
+      priority,
+      duration_minutes,
+      client:clients(id, name)
     `)
     .eq('user_id', userId)
-    .eq('status', 'scheduled')
+    .in('status', ['scheduled', 'confirmed'])
     .gte('date', today)
     .order('date')
     .order('time')
-    .limit(10);
+    .limit(15);
 
   if (error) {
     console.error('[context-builder] Erro ao buscar reuniões:', error);
@@ -124,13 +128,17 @@ async function fetchUpcomingMeetings(supabase: ReturnType<typeof createClient>, 
   }
 
   return (data || []).map((meeting) => {
-    const client = meeting.client as unknown as { id: string; name: string };
+    const client = meeting.client as unknown as { id: string; name: string } | null;
     return {
       id: meeting.id,
-      clientId: client?.id || '',
-      clientName: client?.name || 'Cliente',
+      clientId: client?.id || undefined,
+      clientName: client?.name || undefined,
+      title: meeting.title || 'Reunião',
       date: meeting.date,
-      time: meeting.time
+      time: meeting.time,
+      type: meeting.type || 'online',
+      priority: meeting.priority || undefined,
+      durationMinutes: meeting.duration_minutes || undefined
     };
   });
 }
@@ -266,6 +274,61 @@ async function fetchPendingPayments(supabase: ReturnType<typeof createClient>, u
 }
 
 /**
+ * Busca execuções recentes bem-sucedidas do usuário
+ * @param supabase - Cliente Supabase
+ * @param userId - ID do usuário
+ * @returns Lista de execuções formatadas
+ */
+async function fetchRecentExecutions(supabase: ReturnType<typeof createClient>, userId: string): Promise<ExecutionContext[]> {
+  console.log('[context-builder] Buscando execuções recentes para userId:', userId);
+  // Buscar execuções dos últimos 30 dias
+  const startDate = new Date();
+  startDate.setDate(startDate.getDate() - 30);
+
+  console.log('[context-builder] Data inicial para busca:', startDate.toISOString());
+
+  const { data, error } = await supabase
+    .from('task_executions')
+    .select(`
+      id,
+      client_id,
+      action_type,
+      title,
+      optimization_type,
+      optimization_details,
+      result,
+      executed_at,
+      client:clients(id, name)
+    `)
+    .eq('user_id', userId)
+    .gte('executed_at', startDate.toISOString())
+    .order('executed_at', { ascending: false })
+    .limit(30);
+
+  console.log('[context-builder] Resultado busca execuções:', { count: data?.length, error: error?.message });
+
+  if (error) {
+    console.error('[context-builder] Erro ao buscar execuções:', error);
+    return [];
+  }
+
+  return (data || []).map((execution) => {
+    const client = execution.client as unknown as { id: string; name: string } | null;
+    return {
+      id: execution.id,
+      clientId: client?.id || undefined,
+      clientName: client?.name || undefined,
+      actionType: execution.action_type,
+      title: execution.title,
+      optimizationType: execution.optimization_type || undefined,
+      optimizationDetails: execution.optimization_details || undefined,
+      result: execution.result || undefined,
+      executedAt: execution.executed_at
+    };
+  });
+}
+
+/**
  * Monta o contexto completo do usuário para o assistente
  * @param userId - ID do usuário
  * @returns Contexto do usuário com clientes, reuniões, tarefas e pagamentos
@@ -279,13 +342,14 @@ export async function buildUserContext(userId: string): Promise<UserContext> {
   const now = new Date();
 
   // Buscar dados em paralelo para melhor performance
-  const [userName, clients, upcomingMeetings, calendarEvents, pendingTasks, pendingPayments] = await Promise.all([
+  const [userName, clients, upcomingMeetings, calendarEvents, pendingTasks, pendingPayments, recentExecutions] = await Promise.all([
     fetchUserProfile(supabase, userId),
     fetchClients(supabase, userId),
     fetchUpcomingMeetings(supabase, userId),
     fetchCalendarEvents(supabase, userId),
     fetchPendingTasks(supabase, userId),
-    fetchPendingPayments(supabase, userId)
+    fetchPendingPayments(supabase, userId),
+    fetchRecentExecutions(supabase, userId)
   ]);
 
   const activeClients = clients.filter((c) => c.status === 'active').length;
@@ -300,6 +364,7 @@ export async function buildUserContext(userId: string): Promise<UserContext> {
     calendarEvents,
     pendingTasks,
     pendingPayments,
+    recentExecutions,
     currentDate: formatDateISO(now),
     currentTime: formatTime(now),
     currentDayOfWeek: getDayOfWeek(now)

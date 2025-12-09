@@ -25,6 +25,8 @@ export const ROUTES = {
   CLIENTS: '/clients',
   CLIENT_DETAIL: (id: string) => `/clients/${id}`,
   TASKS: '/tasks',
+  HISTORICO: '/historico',
+  MEETINGS: '/reunioes',
   CALENDAR: '/calendar',
   TEMPLATES: '/templates',
   REPORTS: '/reports',
@@ -46,6 +48,8 @@ export const NAV_ITEMS = [
   { id: 'clients', label: 'Clientes', icon: 'Users', href: ROUTES.CLIENTS },
   { id: 'leads', label: 'Lead Sniper', icon: 'Target', href: ROUTES.LEADS },
   { id: 'tasks', label: 'Tarefas', icon: 'CheckSquare', href: ROUTES.TASKS },
+  { id: 'meetings', label: 'Reuniões', icon: 'Video', href: ROUTES.MEETINGS },
+  { id: 'historico', label: 'Histórico', icon: 'History', href: ROUTES.HISTORICO },
   { id: 'calendar', label: 'Calendário', icon: 'Calendar', href: ROUTES.CALENDAR },
   { id: 'reports', label: 'Relatórios', icon: 'BarChart3', href: ROUTES.REPORTS },
   { id: 'analysis', label: 'Análise', icon: 'Brain', href: ROUTES.ANALYSIS },
@@ -73,9 +77,49 @@ export const SEGMENTS = [
 ] as const;
 
 /**
- * Status de cliente com configurações visuais modernas
+ * Status de cliente com configurações visuais modernas (CRM Pipeline)
  */
 export const CLIENT_STATUS = {
+  negotiation: {
+    label: 'Em Negociação',
+    color: 'info',
+    bgClass: 'bg-violet-500/15',
+    textClass: 'text-violet-300',
+    borderClass: 'border-violet-500/40',
+    dotClass: 'bg-violet-400',
+    priority: 1,
+    description: 'Lead quente em processo de negociação',
+  },
+  proposal: {
+    label: 'Proposta Enviada',
+    color: 'info',
+    bgClass: 'bg-blue-500/15',
+    textClass: 'text-blue-300',
+    borderClass: 'border-blue-500/40',
+    dotClass: 'bg-blue-400',
+    priority: 2,
+    description: 'Aguardando resposta da proposta',
+  },
+  follow_up: {
+    label: 'Follow-up',
+    color: 'warning',
+    bgClass: 'bg-orange-500/15',
+    textClass: 'text-orange-300',
+    borderClass: 'border-orange-500/40',
+    dotClass: 'bg-orange-400',
+    priority: 3,
+    description: 'Necessita acompanhamento',
+  },
+  collection: {
+    label: 'Em Cobrança',
+    color: 'danger',
+    bgClass: 'bg-rose-500/15',
+    textClass: 'text-rose-300',
+    borderClass: 'border-rose-500/40',
+    dotClass: 'bg-rose-400',
+    priority: 4,
+    description: 'Pagamento pendente - prioridade alta',
+  },
   active: {
     label: 'Ativo',
     color: 'success',
@@ -83,6 +127,8 @@ export const CLIENT_STATUS = {
     textClass: 'text-emerald-300',
     borderClass: 'border-emerald-500/40',
     dotClass: 'bg-emerald-400',
+    priority: 5,
+    description: 'Cliente ativo e em dia',
   },
   paused: {
     label: 'Pausado',
@@ -91,14 +137,18 @@ export const CLIENT_STATUS = {
     textClass: 'text-amber-300',
     borderClass: 'border-amber-500/40',
     dotClass: 'bg-amber-400',
+    priority: 6,
+    description: 'Serviço temporariamente pausado',
   },
   inactive: {
     label: 'Inativo',
-    color: 'error',
-    bgClass: 'bg-red-500/15',
-    textClass: 'text-red-300',
-    borderClass: 'border-red-500/40',
-    dotClass: 'bg-red-400',
+    color: 'inactive',
+    bgClass: 'bg-zinc-500/15',
+    textClass: 'text-zinc-400',
+    borderClass: 'border-zinc-500/40',
+    dotClass: 'bg-zinc-500',
+    priority: 7,
+    description: 'Cliente inativo ou cancelado',
   },
 } as const;
 
@@ -176,6 +226,24 @@ export const PAYMENT_STATUS = {
     borderClass: 'border-red-500/40',
     dotClass: 'bg-red-400',
     icon: 'alert',
+  },
+  cancelled: {
+    label: 'Cancelado',
+    color: 'inactive',
+    bgClass: 'bg-zinc-500/15',
+    textClass: 'text-zinc-400',
+    borderClass: 'border-zinc-500/40',
+    dotClass: 'bg-zinc-500',
+    icon: 'x-circle',
+  },
+  inactive: {
+    label: 'Inativo',
+    color: 'inactive',
+    bgClass: 'bg-slate-500/15',
+    textClass: 'text-slate-400',
+    borderClass: 'border-slate-500/40',
+    dotClass: 'bg-slate-500',
+    icon: 'pause-circle',
   },
 } as const;
 

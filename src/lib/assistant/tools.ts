@@ -451,6 +451,200 @@ export const ASSISTANT_TOOLS: ToolDefinition[] = [
       required: ['clientId']
     },
     requiresConfirmation: false
+  },
+
+  // ==================== GESTÃO DE CLIENTES (AUTONOMIA IA) ====================
+  {
+    name: 'atualizar_cliente',
+    description: 'Atualiza dados de um cliente existente. Use para alterar status CRM (mover no pipeline), dados de contato, valor mensal, etc. IMPORTANTE: Use para mover clientes entre etapas do funil de vendas.',
+    parameters: {
+      type: 'object',
+      properties: {
+        clientId: {
+          type: 'string',
+          description: 'ID do cliente a ser atualizado'
+        },
+        status: {
+          type: 'string',
+          enum: ['negotiation', 'proposal', 'follow_up', 'collection', 'active', 'paused', 'inactive'],
+          description: 'Novo status CRM do cliente'
+        },
+        contact_name: {
+          type: 'string',
+          description: 'Nome do contato principal'
+        },
+        contact_phone: {
+          type: 'string',
+          description: 'Telefone do contato'
+        },
+        contact_email: {
+          type: 'string',
+          description: 'Email do contato'
+        },
+        monthly_value: {
+          type: 'number',
+          description: 'Novo valor mensal em R$'
+        },
+        due_day: {
+          type: 'number',
+          description: 'Dia do mês para vencimento (1-31)'
+        }
+      },
+      required: ['clientId']
+    },
+    requiresConfirmation: true,
+    confirmationType: 'generic'
+  },
+  {
+    name: 'criar_cliente',
+    description: 'Cria um novo cliente/lead no sistema. Use quando fechar com novo cliente, receber indicação, ou quiser registrar lead.',
+    parameters: {
+      type: 'object',
+      properties: {
+        name: {
+          type: 'string',
+          description: 'Nome do cliente/empresa'
+        },
+        segment: {
+          type: 'string',
+          enum: ['fitness', 'delivery', 'ecommerce', 'services', 'education', 'health', 'construction', 'events', 'beauty', 'automotive', 'other'],
+          description: 'Segmento de atuação'
+        },
+        status: {
+          type: 'string',
+          enum: ['negotiation', 'proposal', 'follow_up', 'collection', 'active', 'paused', 'inactive'],
+          description: 'Status inicial no pipeline CRM (padrão: negotiation)'
+        },
+        contact_name: {
+          type: 'string',
+          description: 'Nome do contato principal'
+        },
+        contact_phone: {
+          type: 'string',
+          description: 'Telefone com DDD'
+        },
+        contact_email: {
+          type: 'string',
+          description: 'Email do contato'
+        },
+        monthly_value: {
+          type: 'number',
+          description: 'Valor mensal do serviço em R$'
+        },
+        due_day: {
+          type: 'number',
+          description: 'Dia do mês para vencimento (1-31)'
+        }
+      },
+      required: ['name', 'segment']
+    },
+    requiresConfirmation: true,
+    confirmationType: 'generic'
+  },
+  {
+    name: 'criar_nota',
+    description: 'Cria uma nota/anotação sobre um cliente. Use para registrar conversas, decisões, feedback, problemas ou oportunidades.',
+    parameters: {
+      type: 'object',
+      properties: {
+        clientId: {
+          type: 'string',
+          description: 'ID do cliente'
+        },
+        content: {
+          type: 'string',
+          description: 'Conteúdo da nota'
+        },
+        type: {
+          type: 'string',
+          enum: ['general', 'meeting', 'call', 'decision', 'feedback', 'issue', 'opportunity'],
+          description: 'Tipo da nota (padrão: general)'
+        }
+      },
+      required: ['clientId', 'content']
+    },
+    requiresConfirmation: false
+  },
+  {
+    name: 'registrar_execucao',
+    description: 'Registra uma ação/otimização no histórico. Use para documentar o que foi feito em campanhas, ajustes realizados, ou tarefas importantes completadas.',
+    parameters: {
+      type: 'object',
+      properties: {
+        clientId: {
+          type: 'string',
+          description: 'ID do cliente relacionado (opcional)'
+        },
+        actionType: {
+          type: 'string',
+          enum: ['task_completed', 'optimization_applied', 'manual_action'],
+          description: 'Tipo da ação'
+        },
+        title: {
+          type: 'string',
+          description: 'Título resumido'
+        },
+        description: {
+          type: 'string',
+          description: 'Descrição detalhada'
+        },
+        optimizationType: {
+          type: 'string',
+          enum: ['campaign_adjustment', 'budget_change', 'targeting_tweak', 'creative_update', 'bid_strategy', 'audience_expansion', 'other'],
+          description: 'Tipo de otimização (se aplicável)'
+        },
+        result: {
+          type: 'string',
+          enum: ['success', 'partial', 'failed', 'pending'],
+          description: 'Resultado da ação'
+        }
+      },
+      required: ['actionType', 'title']
+    },
+    requiresConfirmation: false
+  },
+
+  // ==================== INTELIGÊNCIA PROATIVA ====================
+  {
+    name: 'sugerir_acoes_prioritarias',
+    description: 'Analisa situação atual e sugere ações prioritárias baseado no pipeline CRM, tarefas pendentes, pagamentos e reuniões. Use quando perguntarem "o que fazer?", "próximos passos", "prioridades" ou seja proativo.',
+    parameters: {
+      type: 'object',
+      properties: {
+        foco: {
+          type: 'string',
+          enum: ['vendas', 'cobranca', 'entrega', 'geral'],
+          description: 'Foco das sugestões (padrão: geral)'
+        }
+      },
+      required: []
+    },
+    requiresConfirmation: false
+  },
+  {
+    name: 'diagnostico_operacao',
+    description: 'Faz diagnóstico rápido da operação ou de um cliente específico. Mostra saúde financeira, pipeline, tarefas atrasadas e alertas.',
+    parameters: {
+      type: 'object',
+      properties: {
+        clientId: {
+          type: 'string',
+          description: 'ID do cliente (opcional - se não informado, analisa toda operação)'
+        }
+      },
+      required: []
+    },
+    requiresConfirmation: false
+  },
+  {
+    name: 'pipeline_overview',
+    description: 'Visão geral do pipeline CRM com contagens por status e valores. Use para saber quantos clientes em cada etapa do funil.',
+    parameters: {
+      type: 'object',
+      properties: {},
+      required: []
+    },
+    requiresConfirmation: false
   }
 ];
 

@@ -69,9 +69,13 @@ export async function GET(request: NextRequest) {
       overdue: paymentsData
         .filter((p: Payment) => p.status === 'overdue')
         .reduce((sum: number, p: Payment) => sum + (p.amount || 0), 0),
+      inactive: paymentsData
+        .filter((p: Payment) => p.status === 'inactive')
+        .reduce((sum: number, p: Payment) => sum + (p.amount || 0), 0),
       clientsPaid: paymentsData.filter((p: Payment) => p.status === 'paid').length,
       clientsPending: paymentsData.filter((p: Payment) => p.status === 'pending').length,
       clientsOverdue: paymentsData.filter((p: Payment) => p.status === 'overdue').length,
+      clientsInactive: paymentsData.filter((p: Payment) => p.status === 'inactive').length,
     };
 
     return NextResponse.json(overview);

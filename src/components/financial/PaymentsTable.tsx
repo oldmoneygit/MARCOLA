@@ -34,6 +34,7 @@ const STATUS_CONFIG: Record<PaymentStatus, { label: string; badgeStatus: BadgeSt
   pending: { label: 'Pendente', badgeStatus: 'warning' },
   overdue: { label: 'Atrasado', badgeStatus: 'danger' },
   cancelled: { label: 'Cancelado', badgeStatus: 'inactive' },
+  inactive: { label: 'Inativo', badgeStatus: 'inactive' },
 };
 
 /**
@@ -111,9 +112,9 @@ export function PaymentsTable({
     }
   }, [onDelete]);
 
-  // Pagamentos pendentes (não pagos)
+  // Pagamentos pendentes (não pagos e não inativos)
   const pendingPayments = useMemo(
-    () => payments.filter((p) => p.status !== 'paid'),
+    () => payments.filter((p) => p.status !== 'paid' && p.status !== 'inactive' && p.status !== 'cancelled'),
     [payments]
   );
 
@@ -213,7 +214,8 @@ export function PaymentsTable({
               const statusConfig = STATUS_CONFIG[payment.status];
               const daysOverdue = payment.status === 'overdue' ? getDaysOverdue(payment.due_date) : 0;
               const isSelected = selectedPayments.has(payment.id);
-              const canSelect = payment.status !== 'paid';
+              const canSelect = payment.status !== 'paid' && payment.status !== 'inactive' && payment.status !== 'cancelled';
+              const showActions = payment.status === 'pending' || payment.status === 'overdue';
 
               return (
                 <tr
@@ -273,7 +275,7 @@ export function PaymentsTable({
                   </td>
                   <td className="py-4 px-4">
                     <div className="flex items-center justify-end gap-2">
-                      {payment.status !== 'paid' && (
+                      {showActions && (
                         <>
                           {/* WhatsApp Button */}
                           <button
@@ -298,6 +300,11 @@ export function PaymentsTable({
                       {payment.status === 'paid' && payment.paid_date && (
                         <span className="text-xs text-emerald-400">
                           Pago em {formatDate(payment.paid_date)}
+                        </span>
+                      )}
+                      {(payment.status === 'inactive' || payment.status === 'cancelled') && (
+                        <span className="text-xs text-zinc-500">
+                          {payment.status === 'inactive' ? 'Cliente inativo' : 'Cancelado'}
                         </span>
                       )}
                       {onDelete && (
